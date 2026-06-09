@@ -1,93 +1,85 @@
-<p align="center">
-  <a href="https://github.com/unibest-tech/unibest">
-    <img width="160" src="./src/static/logo.svg">
-  </a>
-</p>
+# 外卖红黑榜记录小程序
 
-<h1 align="center">
-  <a href="https://github.com/unibest-tech/unibest" target="_blank">unibest - 最好的 uniapp 开发框架</a>
-</h1>
-
-<div align="center">
-旧仓库 codercup 进不去了，star 也拿不回来，这里也展示一下那个地址的 star.
-
-[![GitHub Repo stars](https://img.shields.io/github/stars/codercup/unibest?style=flat&logo=github)](https://github.com/codercup/unibest)
-[![GitHub forks](https://img.shields.io/github/forks/codercup/unibest?style=flat&logo=github)](https://github.com/codercup/unibest)
-
-</div>
-
-<div align="center">
-
-[![GitHub Repo stars](https://img.shields.io/github/stars/feige996/unibest?style=flat&logo=github)](https://github.com/feige996/unibest)
-[![GitHub forks](https://img.shields.io/github/forks/feige996/unibest?style=flat&logo=github)](https://github.com/feige996/unibest)
-[![star](https://gitee.com/feige996/unibest/badge/star.svg?theme=dark)](https://gitee.com/feige996/unibest/stargazers)
-[![fork](https://gitee.com/feige996/unibest/badge/fork.svg?theme=dark)](https://gitee.com/feige996/unibest/members)
-![node version](https://img.shields.io/badge/node-%3E%3D18-green)
-![pnpm version](https://img.shields.io/badge/pnpm-%3E%3D7.30-green)
-![GitHub package.json version (subfolder of monorepo)](https://img.shields.io/github/package-json/v/feige996/unibest)
-![GitHub License](https://img.shields.io/github/license/feige996/unibest)
-
-</div>
-
-`unibest` —— 最好的 `uniapp` 开发模板，由 `uniapp` + `Vue3` + `Ts` + `Vite5` + `UnoCss` + `wot-ui` + `z-paging` 构成，使用了最新的前端技术栈，无需依靠 `HBuilderX`，通过命令行方式运行 `web`、`小程序` 和 `App`（编辑器推荐 `VSCode`，可选 `webstorm`）。
-
-`unibest` 内置了 `约定式路由`、`layout布局`、`请求封装`、`请求拦截`、`登录拦截`、`UnoCSS`、`i18n多语言` 等基础功能，提供了 `代码提示`、`自动格式化`、`统一配置`、`代码片段` 等辅助功能，让你编写 `uniapp` 拥有 `best` 体验 （ `unibest 的由来`）。
-
-![](https://raw.githubusercontent.com/andreasbm/readme/master/screenshots/lines/rainbow.png)
-
-<p align="center">
-  <a href="https://unibest.tech/" target="_blank">📖 文档地址(new)</a>
-  <span style="margin:0 10px;">|</span>
-  <a href="https://feige996.github.io/hello-unibest/" target="_blank">📱 DEMO 地址</a>
-</p>
+## 项目简介
+**外卖红黑榜记录小程序**是一款专注于外卖商家评价和推荐的小程序，面向校园、社区或办公场景。用户可以查看优质商家（红榜）、问题商家（黑榜）信息，并进行上报和收藏，帮助大家快速找到可靠外卖，同时避开存在卫生、服务、食品质量等问题的商家。
 
 ---
 
-注意旧的地址 [codercup](https://github.com/codercup/unibest) 我进不去了，使用新的 [feige996](https://github.com/feige996/unibest)。PR和 issue 也请使用新地址，否则无法合并。
+## 功能模块
 
-## 平台兼容性
+### 1. 首页
+- **搜索栏**：输入商家名称、菜品或关键词进行查找。
+- **定位选择**：显示当前位置，支持切换区域。
+- **“今天吃什么呢”随机推荐模块**：
+  - 从红榜商家中随机抽取一家外卖。
+  - 显示商家信息：名称、类别、评分、标签、红榜来源标识。
+  - 提供“随机抽取”按钮触发随机选择。
+- **红榜推荐**：横向展示部分红榜商家，显示名称、类别、评分、标签和月销量。
+- **最新记录**：列出最新上报的红黑榜商家，红黑状态用红色/黑色标签标识。
 
-| H5  | IOS | 安卓 | 微信小程序 | 字节小程序 | 快手小程序 | 支付宝小程序 | 钉钉小程序 | 百度小程序 |
-| --- | --- | ---- | ---------- | ---------- | ---------- | ------------ | ---------- | ---------- |
-| √   | √   | √    | √          | √          | √          | √            | √          | √          |
+### 2. 榜单页
+- **红榜/黑榜切换**：可查看红榜或黑榜商家。
+- **筛选条件**：分类、距离最近、评分最高、本周新增。
+- **商家列表**：
+  - 显示排名、商家名称、类别、评分、标签。
+  - 前三名商家突出显示奖杯或排名标识。
+- **黑榜预览**：展示部分黑榜商家及问题简述。
 
-注意每种 `UI框架` 支持的平台有所不同，详情请看各 `UI框架` 的官网，也可以看 `unibest` 文档。
+### 3. 上报记录页
+- **红榜/黑榜上报切换**：用户可选择上报正面或负面商家。
+- **上报表单**：
+  - 商家名称、分类、就餐/下单时间、评分、标签、详细说明。
+  - 支持上传图片（最多6张）。
+  - 匿名发布开关。
+- **提交按钮**：完成上报。
 
-## ⚙️ 环境
+### 4. 我的页面
+- **用户信息**：头像、昵称、角色标签、个人简介。
+- **统计信息**：我的上报数量、收藏商家数量、待处理记录。
+- **积分和贡献**：积分值、信誉等级、连续贡献天数。
+- **我的记录**：用户上报的红黑榜商家列表。
+- **快捷功能**：我的收藏、审核进度、消息通知、帮助反馈、设置。
 
-- node>=18
-- pnpm>=7.30
-- Vue Official>=2.1.10
-- TypeScript>=5.0
+### 5. 底部导航
+- 首页
+- 榜单
+- 上报（中心加号按钮）
+- 统计
+- 我的
 
-## &#x1F4C2; 快速开始
+---
 
-执行 `pnpm create unibest` 创建项目
-执行 `pnpm i` 安装依赖
-执行 `pnpm dev` 运行 `H5`
-执行 `pnpm dev:mp` 运行 `微信小程序`
+## 设计风格
+- **整体风格**：简洁、现代、扁平化设计。
+- **颜色体系**：
+  - 红色：红榜和正向功能。
+  - 深灰/黑色：黑榜和警示功能。
+  - 白色/浅灰：背景和卡片。
+- **排版**：圆角卡片、软阴影、清晰层级。
+- **可开发性**：UI设计简单、易于实现，核心功能突出，避免复杂动画或过度装饰。
 
-## 📦 运行（支持热更新）
+---
 
-- web平台： `pnpm dev:h5`, 然后打开 [http://localhost:9000/](http://localhost:9000/)。
-- weixin平台：`pnpm dev:mp` 然后打开微信开发者工具，导入本地文件夹，选择本项目的`dist/dev/mp-weixin` 文件。
-- APP平台：`pnpm dev:app`, 然后打开 `HBuilderX`，导入刚刚生成的`dist/dev/app` 文件夹，选择运行到模拟器(开发时优先使用)，或者运行的安卓/ios基座。
+## 技术实现建议
+- **前端**：微信小程序 WXML + WXSS + JS
+- **后端**：可选，支持商家列表、上报数据存储及查询
+- **随机抽取功能**：
+  - 点击按钮从红榜数组中随机选取商家。
+  - 直接显示在结果区域，无需复杂动画。
 
-## 🔗 发布
+---
 
-- web平台： `pnpm build:h5`，打包后的文件在 `dist/build/h5`，可以放到web服务器，如nginx运行。如果最终不是放在根目录，可以在 `manifest.config.ts` 文件的 `h5.router.base` 属性进行修改。
-- weixin平台：`pnpm build:mp`, 打包后的文件在 `dist/build/mp-weixin`，然后通过微信开发者工具导入，并点击右上角的“上传”按钮进行上传。
-- APP平台：`pnpm build:app`, 然后打开 `HBuilderX`，导入刚刚生成的`dist/build/app` 文件夹，选择发行 - APP云打包。
+## 截图示例
+1. **首页**（含“今天吃什么呢”模块、红榜推荐和最新记录）  
+   ![首页](./1.png)
+2. **榜单页**（红榜/黑榜商家列表）  
+   ![榜单](./2.png)
+3. **上报记录页**（红榜/黑榜上报表单）  
+   ![上报](./3.png)
 
-## 📄 License
+---
 
-[MIT](https://opensource.org/license/mit/)
+## 总结
+本小程序以红黑榜为核心，通过随机推荐、榜单查看和上报功能，帮助用户快速找到优质外卖、避免不良商家，并鼓励用户积极贡献自己的用餐体验。设计简洁清晰，开发易于实现，适合校园或社区推广使用。
 
-Copyright (c) 2025 菲鸽
 
-## 捐赠
-
-<p align='center'>
-<img alt="special sponsor appwrite" src="https://oss.laf.run/ukw0y1-site/pay/wepay.png" height="330" style="display:inline-block; height:330px;">
-<img alt="special sponsor appwrite" src="https://oss.laf.run/ukw0y1-site/pay/alipay.jpg" height="330" style="display:inline-block; height:330px; margin-left:10px;">
-</p>
