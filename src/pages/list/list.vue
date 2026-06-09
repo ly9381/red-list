@@ -2,8 +2,7 @@
 {
   "layout": "tabbar",
   "style": {
-    "navigationStyle": "custom",
-    "navigationBarTitleText": "",
+    "navigationBarTitleText": "榜单",
     "enablePullDownRefresh": false
   }
 }
@@ -121,14 +120,6 @@ const blackMerchants: BlackMerchant[] = [
   },
 ]
 
-const bottomTabs = [
-  { label: '首页', icon: 'i-carbon-home', key: 'home' },
-  { label: '榜单', icon: 'i-carbon-trophy', key: 'list' },
-  { label: '上报', icon: 'i-carbon-add', key: 'report' },
-  { label: '统计', icon: 'i-carbon-chart-bar', key: 'stats' },
-  { label: '我的', icon: 'i-carbon-user', key: 'mine' },
-]
-
 function chooseRank(type: RankType) {
   activeRank.value = type
 }
@@ -136,46 +127,10 @@ function chooseRank(type: RankType) {
 function chooseFilter(label: string) {
   activeFilter.value = label
 }
-
-function handleBottomTap(key: string) {
-  if (key === 'home') {
-    uni.switchTab({ url: '/pages/index/index' })
-    return
-  }
-
-  if (key !== 'list') {
-    uni.showToast({
-      title: '功能建设中',
-      icon: 'none',
-    })
-  }
-}
 </script>
 
 <template>
   <view class="list-page">
-    <view class="status-bar">
-      <text class="status-time">
-        9:41
-      </text>
-      <view class="status-icons">
-        <view class="status-icon i-carbon-signal-strength" />
-        <view class="status-icon i-carbon-wifi" />
-        <view class="battery-icon i-carbon-battery-full" />
-      </view>
-    </view>
-
-    <view class="nav-bar">
-      <text class="nav-title">
-        榜单
-      </text>
-      <view class="mini-capsule">
-        <view class="capsule-more i-carbon-overflow-menu-horizontal" />
-        <view class="capsule-divider" />
-        <view class="capsule-dot i-carbon-radio-button-checked" />
-      </view>
-    </view>
-
     <view class="rank-switch">
       <view
         v-for="item in rankTabs"
@@ -258,7 +213,7 @@ function handleBottomTap(key: string) {
 
         <view v-if="merchant.id === 3" class="rank-card__action">
           <text>查看全部红榜商家</text>
-          <view class="action-icon i-carbon-chevron-right" />
+          <view class="i-carbon-chevron-right action-icon" />
         </view>
       </view>
     </view>
@@ -305,124 +260,24 @@ function handleBottomTap(key: string) {
         </view>
       </view>
     </view>
-
-    <view class="bottom-nav">
-      <view
-        v-for="item in bottomTabs"
-        :key="item.key"
-        class="bottom-nav__item"
-        :class="{ 'bottom-nav__item--active': item.key === 'list', 'bottom-nav__item--report': item.key === 'report' }"
-        @tap="handleBottomTap(item.key)"
-      >
-        <view class="bottom-icon-wrap">
-          <view class="bottom-icon" :class="item.icon" />
-        </view>
-        <text>{{ item.label }}</text>
-      </view>
-    </view>
   </view>
 </template>
 
 <style scoped lang="scss">
 .list-page {
-  min-height: 100vh;
-  padding-bottom: calc(136rpx + env(safe-area-inset-bottom));
+  min-height: 100%;
+  padding: 24rpx 0 32rpx;
   overflow-x: hidden;
   color: #111318;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #fff 42%),
-    radial-gradient(circle at 50% 0%, rgba(244, 246, 250, 0.95) 0, rgba(255, 255, 255, 0) 380rpx);
-}
-
-.status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 64rpx;
-  padding: 14rpx 34rpx 0 52rpx;
-  box-sizing: border-box;
-}
-
-.status-time {
-  font-size: 28rpx;
-  font-weight: 800;
-  line-height: 1;
-  color: #050505;
-}
-
-.status-icons {
-  display: flex;
-  gap: 10rpx;
-  align-items: center;
-}
-
-.status-icon {
-  width: 30rpx;
-  height: 30rpx;
-  color: #050505;
-}
-
-.battery-icon {
-  width: 44rpx;
-  height: 28rpx;
-  color: #050505;
-}
-
-.nav-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 86rpx;
-}
-
-.nav-title {
-  font-size: 36rpx;
-  font-weight: 800;
-  line-height: 1;
-  color: #08090b;
-}
-
-.mini-capsule {
-  position: absolute;
-  top: 7rpx;
-  right: 30rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 132rpx;
-  height: 56rpx;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid #e4e6eb;
-  border-radius: 34rpx;
-  box-shadow: 0 2rpx 8rpx rgba(19, 25, 37, 0.04);
-}
-
-.capsule-more {
-  width: 46rpx;
-  height: 46rpx;
-  color: #050505;
-}
-
-.capsule-divider {
-  width: 1rpx;
-  height: 30rpx;
-  margin: 0 12rpx;
-  background: #e7e8ec;
-}
-
-.capsule-dot {
-  width: 44rpx;
-  height: 44rpx;
-  color: #050505;
+  background: #fff;
 }
 
 .rank-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   height: 80rpx;
-  margin: 8rpx 28rpx 0;
+  margin: 0 28rpx;
   overflow: hidden;
   background: #f6f7f9;
   border: 1rpx solid #e9eaed;
@@ -745,7 +600,7 @@ function handleBottomTap(key: string) {
 }
 
 .black-preview {
-  margin: 0 30rpx 0;
+  margin: 0 30rpx;
   padding: 22rpx 14rpx 16rpx;
   background: rgba(255, 255, 255, 0.98);
   border: 1rpx solid #edf0f3;
@@ -794,7 +649,6 @@ function handleBottomTap(key: string) {
 .black-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
 }
 
 .black-row {
@@ -896,88 +750,5 @@ function handleBottomTap(key: string) {
   color: #6a717c;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.bottom-nav {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  height: calc(118rpx + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(255, 255, 255, 0.98);
-  border-top: 1rpx solid #eef0f4;
-  box-shadow: 0 -6rpx 24rpx rgba(24, 30, 43, 0.04);
-}
-
-.bottom-nav__item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  font-size: 20rpx;
-  line-height: 1;
-  color: #4c535f;
-}
-
-.bottom-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52rpx;
-  height: 52rpx;
-  margin-bottom: 7rpx;
-}
-
-.bottom-icon {
-  width: 40rpx;
-  height: 40rpx;
-  color: #4f5662;
-}
-
-.bottom-nav__item--active {
-  color: #f32626;
-
-  .bottom-icon {
-    color: #f32626;
-  }
-
-  &::after {
-    position: absolute;
-    bottom: 9rpx;
-    left: 50%;
-    width: 38rpx;
-    height: 4rpx;
-    content: '';
-    background: #f32626;
-    border-radius: 6rpx;
-    transform: translateX(-50%);
-  }
-}
-
-.bottom-nav__item--report {
-  color: #3c434f;
-
-  .bottom-icon-wrap {
-    width: 62rpx;
-    height: 62rpx;
-    margin-top: -24rpx;
-    margin-bottom: 6rpx;
-    background: linear-gradient(180deg, #ff4d4d 0%, #ec2727 100%);
-    border: 8rpx solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 6rpx 16rpx rgba(232, 38, 38, 0.28);
-  }
-
-  .bottom-icon {
-    width: 40rpx;
-    height: 40rpx;
-    color: #fff;
-  }
 }
 </style>

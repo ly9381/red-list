@@ -8,13 +8,15 @@ interface NavigateToOptions {
        "/pages/index/index" |
        "/pages/about/about" |
        "/pages/list/list" |
+       "/pages/my/my" |
+       "/pages/report/report" |
        "/pages-sub/demo/index" |
        "/pages-sub/update/update";
 }
 interface RedirectToOptions extends NavigateToOptions {}
 
 interface SwitchTabOptions {
-  url: "/pages/index/index" | "/pages/about/about"
+  url: "/pages/index/index" | "/pages/list/list" | "/pages/report/report" | "/pages/my/my"
 }
 
 type ReLaunchOptions = NavigateToOptions | SwitchTabOptions;

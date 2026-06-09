@@ -16,6 +16,11 @@ function isLogined() {
 // 不用登陆就可以访问的白名单页面
 const whitePageList = [
   '/pages/login/login',
+  '/pages/index/index',
+  '/pages/about/about',
+  '/pages/list/list',
+  '/pages/my/my',
+  '/pages/report/report',
   '/pages/login/register',
   '/pages-sub/Help/Help',
   '/pages-sub/managerRegister/managerRegister',
