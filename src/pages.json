@@ -53,15 +53,6 @@
   },
   "pages": [
     {
-      "path": "pages/login/login",
-      "type": "home",
-      "layout": "tabbar",
-      "style": {
-        "navigationBarTitleText": "海星优家",
-        "navigationStyle": "custom"
-      }
-    },
-    {
       "path": "pages/index/index",
       "type": "home",
       "layout": "tabbar",
@@ -71,20 +62,21 @@
       }
     },
     {
-      "path": "pages/about/about",
-      "type": "page",
-      "layout": "tabbar",
-      "style": {
-        "navigationBarTitleText": "关于"
-      }
-    },
-    {
       "path": "pages/list/list",
       "type": "page",
       "layout": "tabbar",
       "style": {
         "navigationBarTitleText": "榜单",
         "enablePullDownRefresh": false
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "type": "page",
+      "layout": "tabbar",
+      "style": {
+        "navigationBarTitleText": "海星优家",
+        "navigationStyle": "custom"
       }
     },
     {

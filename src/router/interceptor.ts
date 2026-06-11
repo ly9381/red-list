@@ -17,7 +17,7 @@ function isLogined() {
 const whitePageList = [
   '/pages/login/login',
   '/pages/index/index',
-  '/pages/about/about',
+  '/',
   '/pages/list/list',
   '/pages/my/my',
   '/pages/report/report',
