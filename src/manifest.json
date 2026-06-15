@@ -1,5 +1,5 @@
 {
-  "name": "uniapp-wheel-v2",
+  "name": "外卖红黑榜",
   "appid": "__UNI__D1E5001",
   "description": "",
   "versionName": "1.0.0",
@@ -83,7 +83,7 @@
   },
   "quickapp": {},
   "mp-weixin": {
-    "appid": "wxd6f2f31f2ad2eb9c",
+    "appid": "wx2f6bd5b4f259c3c7",
     "setting": {
       "urlCheck": false,
       "es6": true,

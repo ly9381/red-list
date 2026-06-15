@@ -16,7 +16,7 @@ const userInfoState: IUserInfo = {
   token: '',
   address: '',
   email: '',
-  id: 0,
+  id: 1,
   idCardNumber: '',
   phone: '',
   realName: '',

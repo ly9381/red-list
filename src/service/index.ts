@@ -1,3 +1,4 @@
+import { redListApi } from '@/service/redList'
 /**
  * @file index.js
  * @author ikbye
@@ -8,4 +9,5 @@ import * as userApi from '@/service/user/user'
 // 接口引用统一导出
 export const API = {
   user: { ...userApi },
+  redList: redListApi,
 }

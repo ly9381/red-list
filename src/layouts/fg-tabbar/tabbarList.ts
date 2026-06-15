@@ -32,26 +32,26 @@ export const selectedTabbarStrategy = TABBAR_MAP.NATIVE_TABBAR
 // selectedTabbarStrategy==NO_TABBAR(0) 时，tabbarList 不生效
 export const tabbarList: FgTabBarItem[] = [
   {
-    iconPath: 'static/tabbar/home.png',
-    selectedIconPath: 'static/tabbar/homeHL.png',
+    iconPath: 'static/tabbar/tab-home.png',
+    selectedIconPath: 'static/tabbar/tab-home-active.png',
     pagePath: 'pages/index/index',
     text: '首页',
   },
   {
-    iconPath: 'static/tabbar/example.png',
-    selectedIconPath: 'static/tabbar/exampleHL.png',
+    iconPath: 'static/tabbar/tab-rank.png',
+    selectedIconPath: 'static/tabbar/tab-rank-active.png',
     pagePath: 'pages/list/list',
     text: '榜单',
   },
   {
-    iconPath: 'static/tabbar/example.png',
-    selectedIconPath: 'static/tabbar/exampleHL.png',
+    iconPath: 'static/tabbar/tab-report.png',
+    selectedIconPath: 'static/tabbar/tab-report-active.png',
     pagePath: 'pages/report/report',
     text: '上报',
   },
   {
-    iconPath: 'static/tabbar/personal.png',
-    selectedIconPath: 'static/tabbar/personalHL.png',
+    iconPath: 'static/tabbar/tab-my.png',
+    selectedIconPath: 'static/tabbar/tab-my-active.png',
     pagePath: 'pages/my/my',
     text: '我的',
   },
@@ -64,14 +64,14 @@ export const cacheTabbarEnable = selectedTabbarStrategy === TABBAR_MAP.NATIVE_TA
 const _tabbar: TabBar = {
   // 只有微信小程序支持 custom。App 和 H5 不生效
   custom: selectedTabbarStrategy === TABBAR_MAP.CUSTOM_TABBAR_WITH_CACHE,
-  color: '#999999',
-  selectedColor: '#018d71',
-  backgroundColor: '#F8F8F8',
+  color: '#5F6672',
+  selectedColor: '#F32626',
+  backgroundColor: '#FFFFFF',
   borderStyle: 'black',
-  height: '50px',
-  fontSize: '10px',
-  iconWidth: '24px',
-  spacing: '3px',
+  height: '58px',
+  fontSize: '11px',
+  iconWidth: '30px',
+  spacing: '2px',
   list: tabbarList as unknown as TabBar['list'],
 }
 

@@ -23,6 +23,8 @@ const whitePageList = [
   '/pages/report/report',
   '/pages/login/register',
   '/pages-sub/Help/Help',
+  '/pages-sub/recordlist/recordlist',
+  '/pages-sub/redmerchant/redmerchant',
   '/pages-sub/managerRegister/managerRegister',
 ]
 

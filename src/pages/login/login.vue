@@ -9,38 +9,41 @@
 </route>
 
 <script setup type="ts">
-import { useUserStore } from '@/store'
+// import { useUserStore } from '@/store'
 
-// 0为正常跳转，1为跳转回原来的页面
 let type = 0
-const userStore = useUserStore()
-function login(code) {
-  uni.login({
-    provider: 'weixin',
-    success: async (loginRes) => {
-      if (await userStore.login()) {
-        setTimeout(() => {
-          if (type === 1) {
-            uni.navigateBack()
-          }
-          else {
-            uni.switchTab({
-              url: '/pages/index/index',
-            })
-          }
-        }, 1000)
-      }
-    },
-  })
+// const userStore = useUserStore()
+
+function login() {
+  uni.showToast({ title: '当前为单用户模式，暂不需要登录', icon: 'none' })
+
+  // 登录逻辑先保留，后续需要多用户时再恢复。
+  // uni.login({
+  //   provider: 'weixin',
+  //   success: async () => {
+  //     if (await userStore.login()) {
+  //       setTimeout(() => {
+  //         if (type === 1) {
+  //           uni.navigateBack()
+  //         }
+  //         else {
+  //           uni.switchTab({
+  //             url: '/pages/index/index',
+  //           })
+  //         }
+  //       }, 1000)
+  //     }
+  //   },
+  // })
 }
 
 onLoad((option) => {
-  type = option.type
+  type = Number(option.type || 0)
 
-  // 自动登录逻辑
-  if (userStore.isLogined) {
-    login()
-  }
+  // 自动登录逻辑先关闭。
+  // if (userStore.isLogined) {
+  //   login()
+  // }
 })
 </script>
 

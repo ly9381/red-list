@@ -11,6 +11,10 @@
 </route>
 
 <script lang="ts" setup>
+import type { MerchantCardVo, OptionVo, ReportRecordVo } from '@/service/redList'
+import { API } from '@/service'
+import { DEFAULT_USER_ID, RED_LIST_REFRESH_EVENT } from '@/service/redList'
+
 defineOptions({
   name: 'Home',
 })
@@ -21,7 +25,6 @@ interface RecommendMerchant {
   category: string
   score: string
   tags: string[]
-  logo: string
 }
 
 interface RecordItem {
@@ -41,47 +44,110 @@ const safeAreaInsets = systemInfo.safeArea
     }
   : null
 
-const luckyMerchant: RecommendMerchant = {
-  id: 1,
-  name: '黄焖鸡米饭',
-  category: '快餐便当',
-  score: '4.8',
-  tags: ['干净卫生', '分量足', '口味好'],
-  logo: '/static/list/logo-huangmen.png',
+const currentCampus = ref<OptionVo>()
+const campusId = ref<number>()
+const luckyMerchant = ref<RecommendMerchant>(emptyMerchant())
+const redRecommendations = ref<RecommendMerchant[]>([])
+const records = ref<RecordItem[]>([])
+let homeLoaded = false
+
+// Mock data is kept commented after API integration.
+// const mockLuckyMerchant: RecommendMerchant = { id: 1, name: '黄焖鸡米饭', category: '快餐便当', score: '4.8', tags: ['干净卫生', '分量足'] }
+// const mockRedRecommendations: RecommendMerchant[] = []
+// const mockRecords: RecordItem[] = []
+
+function emptyMerchant(): RecommendMerchant {
+  return {
+    id: 0,
+    name: '',
+    category: '',
+    score: '0.0',
+    tags: [],
+  }
 }
 
-const redRecommendations: RecommendMerchant[] = [
-  {
-    id: 1,
-    name: '黄焖鸡米饭',
-    category: '快餐便当',
-    score: '4.8',
-    tags: ['干净卫生', '分量足'],
-    logo: '/static/list/logo-huangmen.png',
-  },
-  {
-    id: 2,
-    name: '轻食主义',
-    category: '轻食沙拉',
-    score: '4.7',
-    tags: ['健康低脂', '食材新鲜'],
-    logo: '/static/list/logo-light-food.png',
-  },
-  {
-    id: 3,
-    name: '川香阁',
-    category: '川湘菜',
-    score: '4.6',
-    tags: ['口味正宗', '服务好'],
-    logo: '/static/list/logo-chuanxiang.png',
-  },
-]
+function formatScore(score?: number | string) {
+  const value = Number(score || 0)
+  return value ? value.toFixed(1) : '0.0'
+}
 
-const records: RecordItem[] = [
-  { id: 1, name: '张亮麻辣烫（燕北园店）', type: 'red', time: '05-18 12:45' },
-  { id: 2, name: '饭小盒（畅春园店）', type: 'black', time: '05-18 11:32' },
-  { id: 3, name: '沙县小吃（勺园店）', type: 'red', time: '05-18 10:15' },
-]
+function formatDate(value?: string) {
+  if (!value)
+    return ''
+  const parsed = new Date(value.replace(/-/g, '/'))
+  if (Number.isNaN(parsed.getTime()))
+    return value.slice(5, 16)
+  const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+  const day = `${parsed.getDate()}`.padStart(2, '0')
+  const hour = `${parsed.getHours()}`.padStart(2, '0')
+  const minute = `${parsed.getMinutes()}`.padStart(2, '0')
+  return `${month}-${day} ${hour}:${minute}`
+}
+
+function toMerchant(item: MerchantCardVo, index = 0): RecommendMerchant {
+  return {
+    id: Number(item.merchantId || index),
+    name: item.fullName || item.name || '',
+    category: item.categoryName || '',
+    score: formatScore(item.avgScore),
+    tags: item.tags || [],
+  }
+}
+
+function toRecord(item: ReportRecordVo, index = 0): RecordItem {
+  return {
+    id: Number(item.reportId || index),
+    name: item.fullName || item.merchantName || '',
+    type: item.reportType === 'black' ? 'black' : 'red',
+    time: formatDate(item.createdAt),
+  }
+}
+
+async function loadHomeData() {
+  const [campusRes, todayRes, recommendRes, recordRes] = await Promise.all([
+    API.redList.index.currentCampus(campusId.value),
+    API.redList.index.todayEat({ campusId: campusId.value, userId: DEFAULT_USER_ID }),
+    API.redList.index.redRecommend({ campusId: campusId.value, userId: DEFAULT_USER_ID, limit: 3 }),
+    API.redList.index.latestRecords({ campusId: campusId.value, limit: 3 }),
+  ])
+
+  currentCampus.value = campusRes.data
+  luckyMerchant.value = todayRes.data ? toMerchant(todayRes.data) : emptyMerchant()
+  redRecommendations.value = (recommendRes.data || []).map(toMerchant)
+  records.value = (recordRes.data || []).map(toRecord)
+}
+
+async function drawLuckyMerchant() {
+  const res = await API.redList.index.todayEat({ campusId: campusId.value, userId: DEFAULT_USER_ID })
+  luckyMerchant.value = res.data ? toMerchant(res.data) : emptyMerchant()
+}
+
+async function refreshHomeData() {
+  await loadHomeData()
+  homeLoaded = true
+}
+
+function goRedMerchants() {
+  uni.navigateTo({ url: '/pages-sub/redmerchant/redmerchant?rankType=red' as any })
+}
+
+function goRecordList() {
+  uni.navigateTo({ url: '/pages-sub/recordlist/recordlist' as any })
+}
+
+onLoad(() => {
+  uni.$on(RED_LIST_REFRESH_EVENT, refreshHomeData)
+  refreshHomeData()
+})
+
+onShow(() => {
+  if (homeLoaded)
+    refreshHomeData()
+})
+
+onUnload(() => {
+  uni.$off(RED_LIST_REFRESH_EVENT, refreshHomeData)
+})
 </script>
 
 <template>
@@ -100,7 +166,7 @@ const records: RecordItem[] = [
       <view class="location-box">
         <view class="location-icon i-carbon-location" />
         <text class="location-text">
-          北京大学校园
+          {{ currentCampus?.name || '成都' }}
         </text>
         <view class="chevron-down i-carbon-chevron-down" />
       </view>
@@ -120,10 +186,9 @@ const records: RecordItem[] = [
       </view>
 
       <view class="lucky-merchant">
-        <image class="lucky-logo" :src="luckyMerchant.logo" mode="aspectFill" />
         <view class="lucky-info">
           <view class="merchant-name">
-            {{ luckyMerchant.name }}
+            {{ luckyMerchant.name || '暂无推荐' }}
           </view>
           <view class="merchant-meta">
             <text>{{ luckyMerchant.category }}</text>
@@ -144,7 +209,7 @@ const records: RecordItem[] = [
         </view>
       </view>
 
-      <button class="draw-button">
+      <button class="draw-button" @tap="drawLuckyMerchant">
         随机抽取
       </button>
     </view>
@@ -154,15 +219,14 @@ const records: RecordItem[] = [
         <view class="section-title">
           红榜推荐
         </view>
-        <view class="section-more">
+        <view class="section-more" @tap="goRedMerchants">
           <text>更多</text>
-          <view class="more-icon i-carbon-chevron-right" />
+          <view class="i-carbon-chevron-right more-icon" />
         </view>
       </view>
 
       <view class="recommend-grid">
         <view v-for="merchant in redRecommendations" :key="merchant.id" class="recommend-card">
-          <image class="recommend-logo" :src="merchant.logo" mode="aspectFill" />
           <view class="recommend-name">
             {{ merchant.name }}
           </view>
@@ -187,7 +251,7 @@ const records: RecordItem[] = [
         <view class="section-title">
           最新记录
         </view>
-        <view class="section-more">
+        <view class="section-more" @tap="goRecordList">
           <text>全部记录</text>
           <view class="more-icon i-carbon-chevron-right" />
         </view>
@@ -235,7 +299,7 @@ const records: RecordItem[] = [
 
 .search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 284rpx;
+  grid-template-columns: minmax(0, 1fr) 204rpx;
   gap: 24rpx;
   margin-top: 30rpx;
 }
@@ -340,27 +404,16 @@ const records: RecordItem[] = [
 }
 
 .lucky-merchant {
-  display: flex;
-  align-items: center;
   box-sizing: border-box;
-  padding: 32rpx 40rpx;
+  padding: 32rpx 34rpx;
   margin-top: 24rpx;
   background: #fff;
   border-radius: 18rpx;
   box-shadow: 0 8rpx 22rpx rgba(25, 31, 44, 0.08);
 }
 
-.lucky-logo {
-  flex: 0 0 auto;
-  width: 142rpx;
-  height: 142rpx;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
 .lucky-info {
   min-width: 0;
-  margin-left: 44rpx;
 }
 
 .merchant-name {
@@ -507,7 +560,8 @@ const records: RecordItem[] = [
 .recommend-card {
   min-width: 0;
   box-sizing: border-box;
-  padding: 20rpx 16rpx 18rpx;
+  min-height: 196rpx;
+  padding: 24rpx 16rpx 18rpx;
   text-align: center;
   background: #fff;
   border: 1rpx solid #edf0f3;
@@ -515,15 +569,7 @@ const records: RecordItem[] = [
   box-shadow: 0 6rpx 18rpx rgba(25, 31, 44, 0.04);
 }
 
-.recommend-logo {
-  width: 96rpx;
-  height: 96rpx;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
 .recommend-name {
-  margin-top: 14rpx;
   overflow: hidden;
   font-size: 25rpx;
   font-weight: 800;

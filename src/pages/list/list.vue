@@ -8,25 +8,28 @@
 }
 </route>
 
+<!-- TODO：修改排行逻辑，优化排行榜界面 -->
 <script setup lang="ts">
+import type { OptionVo, RankMerchantVo, RankType } from '@/service/redList'
+import { API } from '@/service'
+import { RED_LIST_REFRESH_EVENT } from '@/service/redList'
+
 defineOptions({
   name: 'ListPage',
 })
 
-type RankType = 'red' | 'black'
-
 interface RedMerchant {
   id: number
   rank: string
+  rankNo: number
   title: string
   category: string
   score: string
   date: string
   tags: string[]
   reason: string
-  logo: string
-  trophy: string
   tone: 'gold' | 'silver' | 'bronze'
+  showAction: boolean
 }
 
 interface BlackMerchant {
@@ -37,96 +40,160 @@ interface BlackMerchant {
   date: string
   issue: string
   reason: string
-  logo: string
 }
 
+const MOCK_CAMPUS_ID = 1
+
 const activeRank = ref<RankType>('red')
-const activeFilter = ref('全部分类')
+const categoryLabel = ref('全部分类')
+const selectedCategoryId = ref<number>()
+const sortType = ref<'rank' | 'score' | 'week'>('rank')
+const categories = ref<OptionVo[]>([])
+const redMerchants = ref<RedMerchant[]>([])
+const blackMerchants = ref<BlackMerchant[]>([])
+let listLoaded = false
 
 const rankTabs = [
   { type: 'red' as const, label: '红榜', icon: 'i-carbon-fire' },
   { type: 'black' as const, label: '黑榜', icon: 'i-carbon-warning-alt-filled' },
 ]
 
-const filters = [
-  { label: '全部分类', icon: '', suffix: 'i-carbon-chevron-down' },
-  { label: '距离最近', icon: 'i-carbon-location', suffix: '' },
-  { label: '评分最高', icon: 'i-carbon-star', suffix: '' },
-  { label: '本周新增', icon: 'i-carbon-calendar-add', suffix: '' },
-]
+const filters = computed(() => [
+  { label: categoryLabel.value, icon: '', suffix: 'i-carbon-chevron-down', type: 'category' as const },
+  { label: '综合排序', icon: 'i-carbon-list', suffix: '', type: 'sort' as const, sort: 'rank' as const },
+  { label: '评分最高', icon: 'i-carbon-star', suffix: '', type: 'sort' as const, sort: 'score' as const },
+  { label: '本周新增', icon: 'i-carbon-calendar-add', suffix: '', type: 'sort' as const, sort: 'week' as const },
+])
 
-const redMerchants: RedMerchant[] = [
-  {
-    id: 1,
-    rank: 'NO.1',
-    title: '黄焖鸡米饭（北京大学店）',
-    category: '快餐便当',
-    score: '4.8',
-    date: '05-18',
-    tags: ['干净卫生', '分量足', '包装好', '味道正宗'],
-    reason: '餐品新鲜，卫生整洁，口味稳定，性价比高',
-    logo: '/static/list/logo-huangmen.png',
-    trophy: '/static/list/trophy-1.png',
-    tone: 'gold',
-  },
-  {
-    id: 2,
-    rank: 'NO.2',
-    title: '轻食主义（中关村店）',
-    category: '轻食沙拉',
-    score: '4.7',
-    date: '05-17',
-    tags: ['健康低脂', '食材新鲜', '搭配合理', '轻盈无负担'],
-    reason: '食材新鲜低脂，搭配丰富，健康营养，吃得安心',
-    logo: '/static/list/logo-light-food.png',
-    trophy: '/static/list/trophy-2.png',
-    tone: 'silver',
-  },
-  {
-    id: 3,
-    rank: 'NO.3',
-    title: '川香阁川湘菜（清华园店）',
-    category: '川湘菜',
-    score: '4.6',
-    date: '05-16',
-    tags: ['口味正宗', '价格实惠', '服务好', '分量大'],
-    reason: '口味地道，性价比高，出餐快，服务热情',
-    logo: '/static/list/logo-chuanxiang.png',
-    trophy: '/static/list/trophy-3.png',
-    tone: 'bronze',
-  },
-]
+// Mock data is kept commented after API integration.
+// const mockRedMerchants: RedMerchant[] = []
+// const mockBlackMerchants: BlackMerchant[] = []
 
-const blackMerchants: BlackMerchant[] = [
-  {
-    id: 1,
-    title: '小味炸鸡（五道口店）',
-    category: '炸鸡小吃',
-    score: '2.1',
-    date: '05-18',
-    issue: '卫生问题',
-    reason: '多次反映存在异物，后厨卫生差',
-    logo: '/static/list/logo-xiaowei.png',
-  },
-  {
-    id: 2,
-    title: '麦香汉堡（清华东路店）',
-    category: '西式快餐',
-    score: '2.3',
-    date: '05-17',
-    issue: '食材问题',
-    reason: '食材新鲜度不足，存在变质风险',
-    logo: '/static/list/logo-maixiang.png',
-  },
-]
+function formatScore(score?: number | string) {
+  const value = Number(score || 0)
+  return value ? value.toFixed(1) : '0.0'
+}
 
-function chooseRank(type: RankType) {
+function formatDate(value?: string) {
+  if (!value)
+    return ''
+  const parsed = new Date(value.replace(/-/g, '/'))
+  if (Number.isNaN(parsed.getTime()))
+    return value.slice(5, 10)
+  const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+  const day = `${parsed.getDate()}`.padStart(2, '0')
+  return `${month}-${day}`
+}
+
+function toneByRank(rankNo: number): RedMerchant['tone'] {
+  if (rankNo === 1)
+    return 'gold'
+  if (rankNo === 2)
+    return 'silver'
+  return 'bronze'
+}
+
+function toRankCard(item: RankMerchantVo, index: number): RedMerchant {
+  const rankNo = index + 1
+  const tone = toneByRank(rankNo)
+  return {
+    id: Number(item.merchantId || index),
+    rankNo,
+    rank: `NO.${rankNo}`,
+    title: item.fullName || item.name || '',
+    category: item.categoryName || '',
+    score: formatScore(item.avgScore),
+    date: formatDate(item.lastReportAt),
+    tags: item.tags || [],
+    reason: item.reason || '',
+    tone,
+    showAction: index === 2,
+  }
+}
+
+function toBlackMerchant(item: RankMerchantVo, index: number): BlackMerchant {
+  return {
+    id: Number(item.merchantId || index),
+    title: item.fullName || item.name || '',
+    category: item.categoryName || '',
+    score: formatScore(item.avgScore),
+    date: formatDate(item.lastReportAt),
+    issue: item.issueLabel || item.tags?.[0] || '问题记录',
+    reason: item.reason || '',
+  }
+}
+
+async function loadCategories() {
+  const res = await API.redList.list.categories()
+  categories.value = res.data || []
+}
+
+async function loadRankItems() {
+  const res = await API.redList.list.rankItems({
+    campusId: MOCK_CAMPUS_ID,
+    rankType: activeRank.value,
+    categoryId: selectedCategoryId.value,
+    sortType: sortType.value,
+    periodType: sortType.value === 'week' ? 'week' : 'all',
+    page: 1,
+    limit: 3,
+  })
+  redMerchants.value = (res.data || []).map(toRankCard)
+}
+
+async function loadBlackPreview() {
+  const res = await API.redList.list.blackPreview({ campusId: MOCK_CAMPUS_ID, limit: 2 })
+  blackMerchants.value = (res.data || []).map(toBlackMerchant)
+}
+
+async function refreshListData() {
+  if (!categories.value.length)
+    await loadCategories()
+  await Promise.all([loadRankItems(), loadBlackPreview()])
+  listLoaded = true
+}
+
+async function chooseRank(type: RankType) {
   activeRank.value = type
+  await loadRankItems()
 }
 
-function chooseFilter(label: string) {
-  activeFilter.value = label
+async function chooseFilter(item: (typeof filters.value)[number]) {
+  if (item.type === 'category') {
+    const itemList = ['全部分类', ...categories.value.map(item => item.name)]
+    uni.showActionSheet({
+      itemList,
+      success: async ({ tapIndex }) => {
+        const selected = tapIndex === 0 ? undefined : categories.value[tapIndex - 1]
+        selectedCategoryId.value = selected?.id
+        categoryLabel.value = selected?.name || '全部分类'
+        await loadRankItems()
+      },
+    })
+    return
+  }
+
+  sortType.value = item.sort
+  await loadRankItems()
 }
+
+function goAllMerchants(type: RankType) {
+  uni.navigateTo({ url: `/pages-sub/redmerchant/redmerchant?rankType=${type}` as any })
+}
+
+onLoad(() => {
+  uni.$on(RED_LIST_REFRESH_EVENT, refreshListData)
+  refreshListData()
+})
+
+onShow(() => {
+  if (listLoaded)
+    refreshListData()
+})
+
+onUnload(() => {
+  uni.$off(RED_LIST_REFRESH_EVENT, refreshListData)
+})
 </script>
 
 <template>
@@ -149,10 +216,10 @@ function chooseFilter(label: string) {
     <view class="filter-row">
       <view
         v-for="item in filters"
-        :key="item.label"
+        :key="`${item.type}-${item.label}`"
         class="filter-chip"
-        :class="{ 'filter-chip--active': activeFilter === item.label }"
-        @tap="chooseFilter(item.label)"
+        :class="{ 'filter-chip--active': item.type === 'category' || sortType === item.sort }"
+        @tap="chooseFilter(item)"
       >
         <view v-if="item.icon" class="filter-chip__icon" :class="item.icon" />
         <text>{{ item.label }}</text>
@@ -165,14 +232,12 @@ function chooseFilter(label: string) {
         v-for="merchant in redMerchants"
         :key="merchant.id"
         class="rank-card"
-        :class="[`rank-card--${merchant.tone}`, { 'rank-card--featured': merchant.id === 1, 'rank-card--with-action': merchant.id === 3 }]"
+        :class="[`rank-card--${merchant.tone}`, { 'rank-card--featured': merchant.rankNo === 1, 'rank-card--with-action': merchant.showAction }]"
       >
         <view class="rank-card__main">
           <view class="rank-badge" :class="`rank-badge--${merchant.tone}`">
             <text>{{ merchant.rank }}</text>
           </view>
-
-          <image class="merchant-logo" :src="merchant.logo" mode="aspectFill" />
 
           <view class="merchant-info">
             <text class="merchant-title">
@@ -199,11 +264,10 @@ function chooseFilter(label: string) {
           <text class="rank-date">
             {{ merchant.date }}
           </text>
-          <image class="trophy" :class="`trophy--${merchant.tone}`" :src="merchant.trophy" mode="aspectFit" />
 
           <view class="recommend">
             <text class="recommend__label">
-              推荐理由：
+              {{ activeRank === 'red' ? '推荐理由：' : '曝光理由：' }}
             </text>
             <text class="recommend__text">
               {{ merchant.reason }}
@@ -211,8 +275,8 @@ function chooseFilter(label: string) {
           </view>
         </view>
 
-        <view v-if="merchant.id === 3" class="rank-card__action">
-          <text>查看全部红榜商家</text>
+        <view v-if="merchant.showAction" class="rank-card__action" @tap="goAllMerchants(activeRank)">
+          <text>{{ activeRank === 'red' ? '查看全部红榜商家' : '查看全部黑榜商家' }}</text>
           <view class="i-carbon-chevron-right action-icon" />
         </view>
       </view>
@@ -224,7 +288,7 @@ function chooseFilter(label: string) {
           <view class="black-title-icon i-carbon-warning-alt-filled" />
           <text>黑榜商家预览</text>
         </view>
-        <view class="black-preview__more">
+        <view class="black-preview__more" @tap="goAllMerchants('black')">
           <text>全部黑榜</text>
           <view class="i-carbon-chevron-right more-icon" />
         </view>
@@ -232,8 +296,6 @@ function chooseFilter(label: string) {
 
       <view class="black-list">
         <view v-for="merchant in blackMerchants" :key="merchant.id" class="black-row">
-          <image class="black-logo" :src="merchant.logo" mode="aspectFill" />
-
           <view class="black-main">
             <view class="black-line">
               <text class="black-name">
@@ -391,12 +453,12 @@ function chooseFilter(label: string) {
   position: relative;
   min-height: 214rpx;
   box-sizing: border-box;
-  padding: 32rpx 24rpx 24rpx 214rpx;
+  padding: 34rpx 24rpx 76rpx 150rpx;
 }
 
 .rank-card--with-action {
   .rank-card__main {
-    min-height: 218rpx;
+    min-height: 216rpx;
   }
 }
 
@@ -446,22 +508,13 @@ function chooseFilter(label: string) {
   background: linear-gradient(135deg, #ff8847 0%, #ffad78 100%);
 }
 
-.merchant-logo {
-  position: absolute;
-  top: 36rpx;
-  left: 40rpx;
-  width: 106rpx;
-  height: 106rpx;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
 .merchant-info {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
   width: 100%;
-  padding-right: 166rpx;
+  padding-right: 92rpx;
+  transform: translateX(-20px);
 }
 
 .merchant-title {
@@ -536,21 +589,6 @@ function chooseFilter(label: string) {
   font-size: 22rpx;
   line-height: 1;
   color: #737b87;
-}
-
-.trophy {
-  position: absolute;
-  top: 56rpx;
-  right: 38rpx;
-  width: 160rpx;
-  height: 124rpx;
-}
-
-.trophy--silver,
-.trophy--bronze {
-  right: 46rpx;
-  width: 132rpx;
-  height: 96rpx;
 }
 
 .recommend {
@@ -652,10 +690,9 @@ function chooseFilter(label: string) {
 }
 
 .black-row {
-  display: flex;
-  align-items: center;
+  display: block;
   min-height: 86rpx;
-  padding: 12rpx 16rpx 12rpx 8rpx;
+  padding: 18rpx 16rpx 18rpx;
   box-sizing: border-box;
   background: #fff;
   border: 1rpx solid #edf0f4;
@@ -664,15 +701,6 @@ function chooseFilter(label: string) {
 
 .black-row + .black-row {
   margin-top: 8rpx;
-}
-
-.black-logo {
-  flex: 0 0 auto;
-  width: 60rpx;
-  height: 60rpx;
-  margin-right: 17rpx;
-  overflow: hidden;
-  border-radius: 50%;
 }
 
 .black-main {

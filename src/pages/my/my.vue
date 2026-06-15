@@ -8,6 +8,11 @@
 </route>
 
 <script setup lang="ts">
+import type { ReportRecordVo, UserProfileVo } from '@/service/redList'
+import { API } from '@/service'
+import { DEFAULT_USER_ID, RED_LIST_REFRESH_EVENT } from '@/service/redList'
+// import { useUserStore } from '@/store'
+
 defineOptions({
   name: 'MyPage',
 })
@@ -29,40 +34,83 @@ interface MenuItem {
   tone: 'yellow' | 'blue' | 'orange' | 'green' | 'gray'
 }
 
-const records: RecordItem[] = [
-  {
-    id: 1,
-    type: 'red',
-    name: '张亮麻辣烫（燕北园店）',
-    tag: '红榜',
-    desc: '食材新鲜，汤底干净，服务态度好',
-    time: '05-18 12:45',
-  },
-  {
-    id: 2,
-    type: 'black',
-    name: '饭小盒（畅春园店）',
-    tag: '黑榜',
-    desc: '饭菜有异味，包装破损，影响食用',
-    time: '05-18 11:32',
-  },
-  {
-    id: 3,
-    type: 'red',
-    name: '沙县小吃（勺园店）',
-    tag: '红榜',
-    desc: '出餐快，分量足，价格实惠',
-    time: '05-18 10:15',
-  },
-]
+// const userStore = useUserStore()
+// 单用户模式：暂时不走登录态，后续恢复登录时可切回 userStore.userInfo.id。
+// const currentUserId = computed(() => Number(userStore.userInfo?.id || DEFAULT_USER_ID))
+const currentUserId = DEFAULT_USER_ID
+const profile = ref<UserProfileVo>({ userId: currentUserId })
+const records = ref<RecordItem[]>([])
+let myPageLoaded = false
+
+// Mock data is kept commented after API integration.
+// const mockRecords: RecordItem[] = []
 
 const menuItems: MenuItem[] = [
-  { id: 1, title: '我的收藏', desc: '收藏的优质商家', icon: 'i-carbon-star-filled', tone: 'yellow' },
-  { id: 2, title: '审核进度', desc: '查看上报审核状态', icon: 'i-carbon-document-tasks', tone: 'blue' },
-  { id: 3, title: '消息通知', desc: '系统消息与通知', icon: 'i-carbon-notification', tone: 'orange' },
-  { id: 4, title: '帮助反馈', desc: '问题反馈与建议', icon: 'i-carbon-chat', tone: 'green' },
-  { id: 5, title: '设置', desc: '账号与隐私设置', icon: 'i-carbon-settings', tone: 'gray' },
+  { id: 1, title: '消息通知', desc: '系统消息与通知', icon: 'i-carbon-notification', tone: 'orange' },
+  { id: 2, title: '帮助反馈', desc: '问题反馈与建议', icon: 'i-carbon-chat', tone: 'green' },
+  { id: 3, title: '设置', desc: '账号与隐私设置', icon: 'i-carbon-settings', tone: 'gray' },
 ]
+
+function formatDate(value?: string) {
+  if (!value)
+    return ''
+  const parsed = new Date(value.replace(/-/g, '/'))
+  if (Number.isNaN(parsed.getTime()))
+    return value.slice(5, 16)
+  const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+  const day = `${parsed.getDate()}`.padStart(2, '0')
+  const hour = `${parsed.getHours()}`.padStart(2, '0')
+  const minute = `${parsed.getMinutes()}`.padStart(2, '0')
+  return `${month}-${day} ${hour}:${minute}`
+}
+
+function toRecord(item: ReportRecordVo, index = 0): RecordItem {
+  const type = item.reportType === 'black' ? 'black' : 'red'
+  return {
+    id: Number(item.reportId || index),
+    type,
+    name: item.fullName || item.merchantName || '',
+    tag: item.reportTypeName || (type === 'red' ? '红榜' : '黑榜'),
+    desc: item.description || item.tags?.join('，') || '',
+    time: formatDate(item.createdAt),
+  }
+}
+
+async function loadMyPage() {
+  const [profileRes, recordsRes] = await Promise.all([
+    API.redList.my.profile(currentUserId),
+    API.redList.my.recentReports({ userId: currentUserId, limit: 3 }),
+  ])
+  profile.value = profileRes.data || { userId: currentUserId }
+  records.value = (recordsRes.data || []).map(toRecord)
+}
+
+async function refreshMyPage() {
+  await loadMyPage()
+  myPageLoaded = true
+}
+
+function goReport() {
+  uni.switchTab({ url: '/pages/report/report' })
+}
+
+function goRecordList() {
+  uni.navigateTo({ url: '/pages-sub/recordlist/recordlist' as any })
+}
+
+onLoad(() => {
+  uni.$on(RED_LIST_REFRESH_EVENT, refreshMyPage)
+  refreshMyPage()
+})
+
+onShow(() => {
+  if (myPageLoaded)
+    refreshMyPage()
+})
+
+onUnload(() => {
+  uni.$off(RED_LIST_REFRESH_EVENT, refreshMyPage)
+})
 </script>
 
 <template>
@@ -70,80 +118,23 @@ const menuItems: MenuItem[] = [
     <view class="profile-card">
       <view class="profile-main">
         <view class="avatar">
-          <view class="avatar-icon i-carbon-user-avatar" />
+          <image v-if="profile.avatarUrl" class="avatar-image" :src="profile.avatarUrl" mode="aspectFill" />
+          <view v-else class="avatar-icon i-carbon-user-avatar" />
         </view>
         <view class="profile-info">
           <view class="name-row">
             <text class="nickname">
-              干饭小能手
+              {{ profile.nickname || '干饭小能手' }}
             </text>
             <text class="level-tag">
-              活跃贡献者
+              {{ profile.userLevel || '活跃贡献者' }}
             </text>
           </view>
           <view class="slogan">
-            一起维护外卖环境，分享真实体验
+            {{ profile.slogan || '一起维护外卖环境，分享真实体验' }}
           </view>
         </view>
         <view class="i-carbon-chevron-right profile-arrow" />
-      </view>
-
-      <view class="stats-row">
-        <view class="stat-item">
-          <view class="stat-number">
-            28
-          </view>
-          <view class="stat-label">
-            我的上报
-          </view>
-        </view>
-        <view class="stat-divider" />
-        <view class="stat-item">
-          <view class="stat-number">
-            16
-          </view>
-          <view class="stat-label">
-            收藏商家
-          </view>
-        </view>
-        <view class="stat-divider" />
-        <view class="stat-item stat-item--dot">
-          <view class="stat-number">
-            3
-          </view>
-          <view class="stat-label">
-            待处理
-          </view>
-        </view>
-      </view>
-
-      <view class="points-card">
-        <view class="points-icon i-carbon-security" />
-        <view class="points-block">
-          <text>积分</text>
-          <text class="points-number">
-            362
-          </text>
-        </view>
-        <view class="points-line" />
-        <view class="credit-block">
-          <view class="credit-title">
-            信誉良好
-          </view>
-          <view class="credit-desc">
-            继续保持哦
-          </view>
-        </view>
-        <view class="points-line" />
-        <view class="credit-block">
-          <view class="credit-title">
-            连续贡献 12 天
-          </view>
-          <view class="credit-desc">
-            再接再厉，获得更多积分
-          </view>
-        </view>
-        <view class="i-carbon-chevron-right points-arrow" />
       </view>
     </view>
 
@@ -152,7 +143,7 @@ const menuItems: MenuItem[] = [
         <view class="section-title">
           我的记录
         </view>
-        <view class="section-more">
+        <view class="section-more" @tap="goRecordList">
           <text>全部记录</text>
           <view class="i-carbon-chevron-right more-icon" />
         </view>
@@ -213,7 +204,7 @@ const menuItems: MenuItem[] = [
           你的一份评价，让外卖环境更美好
         </view>
       </view>
-      <view class="report-button">
+      <view class="report-button" @tap="goReport">
         <text>去上报</text>
         <view class="report-plus i-carbon-add" />
       </view>
@@ -241,14 +232,15 @@ const menuItems: MenuItem[] = [
 }
 
 .profile-card {
-  padding: 32rpx 36rpx 22rpx;
-  background: linear-gradient(120deg, #fff 0%, #fff2f2 100%);
+  padding: 36rpx;
+  background: linear-gradient(135deg, #fff 0%, #fff7f2 48%, #fff1f1 100%);
   border-color: #ffd4d4;
 }
 
 .profile-main {
   display: flex;
   align-items: center;
+  min-height: 124rpx;
 }
 
 .avatar {
@@ -256,17 +248,23 @@ const menuItems: MenuItem[] = [
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 112rpx;
-  height: 112rpx;
+  width: 118rpx;
+  height: 118rpx;
   overflow: hidden;
-  background: #ffe6e6;
+  background: linear-gradient(145deg, #ffe8e2 0%, #ffdede 100%);
   border-radius: 50%;
+  box-shadow: 0 8rpx 18rpx rgba(243, 38, 38, 0.1);
 }
 
 .avatar-icon {
   width: 80rpx;
   height: 80rpx;
   color: #242832;
+}
+
+.avatar-image {
+  width: 118rpx;
+  height: 118rpx;
 }
 
 .profile-info {
@@ -316,113 +314,7 @@ const menuItems: MenuItem[] = [
 .profile-arrow {
   width: 34rpx;
   height: 34rpx;
-  color: #111318;
-}
-
-.stats-row {
-  display: grid;
-  grid-template-columns: 1fr 1rpx 1fr 1rpx 1fr;
-  align-items: center;
-  margin-top: 34rpx;
-}
-
-.stat-item {
-  position: relative;
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 34rpx;
-  font-weight: 800;
-  line-height: 42rpx;
-  color: #111318;
-}
-
-.stat-label {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  line-height: 32rpx;
-  color: #59616d;
-}
-
-.stat-divider {
-  height: 64rpx;
-  background: #e5e8ed;
-}
-
-.stat-item--dot::after {
-  position: absolute;
-  top: -4rpx;
-  right: 44rpx;
-  width: 12rpx;
-  height: 12rpx;
-  content: '';
-  background: #f32626;
-  border-radius: 50%;
-}
-
-.points-card {
-  display: grid;
-  grid-template-columns: 82rpx 160rpx 1rpx minmax(0, 1fr) 1rpx minmax(0, 1.18fr) 30rpx;
-  column-gap: 18rpx;
-  align-items: center;
-  min-height: 100rpx;
-  padding: 12rpx 20rpx;
-  margin-top: 32rpx;
-  color: #f4d98d;
-  background: #202734;
-  border-radius: 14rpx;
-}
-
-.points-icon {
-  width: 62rpx;
-  height: 62rpx;
-  color: #98a3b5;
-}
-
-.points-block {
-  display: flex;
-  align-items: baseline;
-  font-size: 23rpx;
-  font-weight: 700;
-}
-
-.points-number {
-  margin-left: 12rpx;
-  font-size: 34rpx;
-  font-weight: 800;
-}
-
-.points-line {
-  width: 1rpx;
-  height: 64rpx;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.credit-title {
-  overflow: hidden;
-  font-size: 25rpx;
-  font-weight: 800;
-  line-height: 34rpx;
-  color: #f4d98d;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.credit-desc {
-  margin-top: 6rpx;
-  overflow: hidden;
-  font-size: 20rpx;
-  line-height: 28rpx;
-  color: rgba(255, 255, 255, 0.78);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.points-arrow {
-  width: 30rpx;
-  height: 30rpx;
-  color: #d5dbe5;
+  color: #8b929d;
 }
 
 .section-card {
@@ -561,8 +453,7 @@ const menuItems: MenuItem[] = [
 }
 
 .menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: block;
 }
 
 .menu-item {
@@ -575,16 +466,15 @@ const menuItems: MenuItem[] = [
 }
 
 .menu-item:nth-child(odd) {
-  padding-right: 22rpx;
-  border-right: 1rpx solid #edf0f4;
+  padding-right: 0;
+  border-right: 0;
 }
 
 .menu-item:nth-child(even) {
-  padding-left: 24rpx;
+  padding-left: 0;
 }
 
-.menu-item:nth-last-child(1),
-.menu-item:nth-last-child(2) {
+.menu-item:last-child {
   border-bottom: 0;
 }
 

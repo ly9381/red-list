@@ -8,15 +8,39 @@
 </route>
 
 <script setup lang="ts">
+import type { MerchantCardVo, OptionVo, RankType, ReportSubmitReq } from '@/service/redList'
+import { API } from '@/service'
+import { DEFAULT_USER_ID, RED_LIST_REFRESH_EVENT } from '@/service/redList'
+// import { useUserStore } from '@/store'
+
 defineOptions({
   name: 'ReportPage',
 })
 
-type ReportType = 'red' | 'black'
+const MOCK_CAMPUS_ID = 1
+// const userStore = useUserStore()
 
-const activeType = ref<ReportType>('red')
+const activeType = ref<RankType>('red')
 const rating = ref(0)
 const anonymous = ref(false)
+const categories = ref<OptionVo[]>([])
+const goodTags = ref<OptionVo[]>([])
+const badTags = ref<OptionVo[]>([])
+const selectedTagIds = ref<number[]>([])
+const merchantKeyword = ref('')
+const merchantResults = ref<MerchantCardVo[]>([])
+const selectedMerchant = ref<MerchantCardVo>()
+const selectedCategoryId = ref<number>()
+const orderDate = ref(formatDateInput(new Date()))
+const description = ref('')
+const uploads = Array.from({ length: 6 }, (_, index) => index + 1)
+
+// 单用户模式：暂时不走登录态，后续恢复登录时可切回 userStore.userInfo.id。
+// const currentUserId = computed(() => Number(userStore.userInfo?.id || DEFAULT_USER_ID))
+const currentUserId = DEFAULT_USER_ID
+const selectedCategoryName = computed(() => categories.value.find(item => item.id === selectedCategoryId.value)?.name || '')
+const selectedMerchantName = computed(() => selectedMerchant.value?.fullName || selectedMerchant.value?.name || merchantKeyword.value)
+const activeTags = computed(() => activeType.value === 'red' ? goodTags.value : badTags.value)
 
 const reportTabs = [
   {
@@ -33,12 +57,15 @@ const reportTabs = [
   },
 ]
 
-const goodTags = ['味道很棒', '食材新鲜', '性价比高', '服务周到', '包装精美']
-const badTags = ['食品变质', '分量不足', '价格不符', '服务态度差', '配送超时']
-const uploads = Array.from({ length: 6 }, (_, index) => index + 1)
+function formatDateInput(date: Date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
 
-function chooseType(type: ReportType) {
+function chooseType(type: RankType) {
   activeType.value = type
+  selectedTagIds.value = []
 }
 
 function chooseRating(value: number) {
@@ -48,6 +75,120 @@ function chooseRating(value: number) {
 function toggleAnonymous() {
   anonymous.value = !anonymous.value
 }
+
+function chooseCategory(event: any) {
+  const index = Number(event.detail.value)
+  selectedCategoryId.value = categories.value[index]?.id
+}
+
+function chooseOrderDate(event: any) {
+  orderDate.value = event.detail.value
+}
+
+function toggleTag(tagId: number) {
+  if (selectedTagIds.value.includes(tagId)) {
+    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tagId)
+    return
+  }
+  selectedTagIds.value = [...selectedTagIds.value, tagId]
+}
+
+async function searchReportMerchants() {
+  if (!merchantKeyword.value.trim())
+    return
+  const res = await API.redList.report.searchMerchants({
+    campusId: MOCK_CAMPUS_ID,
+    keyword: merchantKeyword.value.trim(),
+    limit: 10,
+  })
+  merchantResults.value = res.data || []
+}
+
+async function chooseMerchant() {
+  await searchReportMerchants()
+  if (!merchantResults.value.length) {
+    selectedMerchant.value = undefined
+    uni.showToast({ title: '未找到商家，将按新商家上报', icon: 'none' })
+    return
+  }
+
+  uni.showActionSheet({
+    itemList: merchantResults.value.map(item => item.fullName || item.name || '未命名商家'),
+    success: ({ tapIndex }) => {
+      selectedMerchant.value = merchantResults.value[tapIndex]
+      merchantKeyword.value = selectedMerchantName.value
+      if (selectedMerchant.value?.categoryId)
+        selectedCategoryId.value = selectedMerchant.value.categoryId
+    },
+  })
+}
+
+function noopUpload() {
+  uni.showToast({ title: '后端暂未提供图片上传接口', icon: 'none' })
+}
+
+function validateForm() {
+  if (!selectedMerchantName.value.trim())
+    return '请填写或选择商家名称'
+  if (!selectedCategoryId.value)
+    return '请选择商家分类'
+  if (!rating.value)
+    return '请点击评分'
+  if (!selectedTagIds.value.length)
+    return '请至少选择一个标签'
+  if (description.value.trim().length < 1)
+    return '详细说明至少 1 个字'
+  return ''
+}
+
+async function submitReport() {
+  const error = validateForm()
+  if (error) {
+    uni.showToast({ title: error, icon: 'none' })
+    return
+  }
+
+  const now = new Date()
+  const time = `${`${now.getHours()}`.padStart(2, '0')}:${`${now.getMinutes()}`.padStart(2, '0')}:${`${now.getSeconds()}`.padStart(2, '0')}`
+  const payload: ReportSubmitReq = {
+    userId: currentUserId,
+    campusId: MOCK_CAMPUS_ID,
+    merchantId: selectedMerchant.value?.merchantId,
+    merchantName: selectedMerchant.value ? selectedMerchant.value.name : merchantKeyword.value.trim(),
+    branchName: selectedMerchant.value?.branchName,
+    categoryId: selectedCategoryId.value!,
+    reportType: activeType.value,
+    orderTime: `${orderDate.value} ${time}`,
+    rating: rating.value,
+    tagIds: selectedTagIds.value,
+    description: description.value.trim(),
+    photoUrls: [],
+    isAnonymous: anonymous.value ? 1 : 0,
+  }
+
+  const res = await API.redList.report.submit(payload)
+  if (res.code === 200) {
+    uni.showToast({ title: '提交成功', icon: 'success' })
+    uni.$emit(RED_LIST_REFRESH_EVENT)
+    description.value = ''
+    selectedTagIds.value = []
+    rating.value = 0
+  }
+  else {
+    uni.showToast({ title: res.message || res.msg || '提交失败', icon: 'none' })
+  }
+}
+
+onLoad(async () => {
+  const [categoryRes, goodTagRes, badTagRes] = await Promise.all([
+    API.redList.report.categories(),
+    API.redList.report.goodTags(),
+    API.redList.report.badTags(),
+  ])
+  categories.value = categoryRes.data || []
+  goodTags.value = goodTagRes.data || []
+  badTags.value = badTagRes.data || []
+})
 </script>
 
 <template>
@@ -81,18 +222,18 @@ function toggleAnonymous() {
         </view>
         <view class="input-pill">
           <view class="i-carbon-search input-icon" />
-          <text>搜索或输入商家名称</text>
+          <input v-model="merchantKeyword" class="plain-input" placeholder="搜索或输入商家名称" confirm-type="search" @confirm="chooseMerchant">
         </view>
-        <view class="i-carbon-chevron-right row-arrow" />
+        <view class="i-carbon-chevron-right row-arrow" @tap="chooseMerchant" />
       </view>
 
       <view class="form-row">
         <view class="form-label">
           分类 <text>*</text>
         </view>
-        <view class="input-pill">
-          <text>选择商家分类</text>
-        </view>
+        <picker class="input-pill" :range="categories" range-key="name" @change="chooseCategory">
+          <text>{{ selectedCategoryName || '选择商家分类' }}</text>
+        </picker>
         <view class="row-arrow i-carbon-chevron-right" />
       </view>
 
@@ -100,10 +241,10 @@ function toggleAnonymous() {
         <view class="form-label">
           就餐/下单时间 <text>*</text>
         </view>
-        <view class="input-pill">
+        <picker class="input-pill" mode="date" :value="orderDate" @change="chooseOrderDate">
           <view class="input-icon i-carbon-calendar" />
-          <text>选择时间</text>
-        </view>
+          <text>{{ orderDate || '选择时间' }}</text>
+        </picker>
         <view class="row-arrow i-carbon-chevron-right" />
       </view>
 
@@ -138,25 +279,19 @@ function toggleAnonymous() {
         <view class="tag-panel">
           <view class="tag-group">
             <view class="tag-title">
-              优点标签 <text>（红榜必填）</text>
+              {{ activeType === 'red' ? '优点标签' : '问题标签' }} <text>{{ activeType === 'red' ? '（红榜必填）' : '（黑榜必填）' }}</text>
             </view>
             <view class="tag-list">
-              <text v-for="tag in goodTags" :key="tag" class="report-tag report-tag--red">
-                {{ tag }}
+              <text
+                v-for="tag in activeTags"
+                :key="tag.id"
+                class="report-tag"
+                :class="[activeType === 'red' ? 'report-tag--red' : 'report-tag--gray', { 'report-tag--active': selectedTagIds.includes(tag.id) }]"
+                @tap="toggleTag(tag.id)"
+              >
+                {{ tag.name }}
               </text>
               <view class="i-carbon-add add-tag" />
-            </view>
-          </view>
-
-          <view class="tag-group tag-group--border">
-            <view class="tag-title">
-              问题标签 <text>（黑榜必填）</text>
-            </view>
-            <view class="tag-list">
-              <text v-for="tag in badTags" :key="tag" class="report-tag report-tag--gray">
-                {{ tag }}
-              </text>
-              <view class="add-tag i-carbon-add" />
             </view>
           </view>
         </view>
@@ -167,9 +302,9 @@ function toggleAnonymous() {
           详细说明 <text>*</text>
         </view>
         <view class="textarea-box">
-          <text>请详细描述您的体验，帮助更多人参考（10-500字）</text>
+          <textarea v-model="description" class="desc-input" :maxlength="500" placeholder="请详细描述您的体验，帮助更多人参考（10-500字）" />
           <view class="count">
-            0/500
+            {{ description.length }}/500
           </view>
         </view>
       </view>
@@ -180,7 +315,7 @@ function toggleAnonymous() {
           <text>请上传与体验相关的照片，最多6张</text>
         </view>
         <view class="upload-grid">
-          <view v-for="item in uploads" :key="item" class="upload-cell">
+          <view v-for="item in uploads" :key="item" class="upload-cell" @tap="noopUpload">
             <view class="i-carbon-add upload-plus" />
             <text>上传照片</text>
           </view>
@@ -208,7 +343,7 @@ function toggleAnonymous() {
       <text>温馨提示：请如实填写，恶意上报将影响您的信用记录</text>
     </view>
 
-    <button class="submit-button">
+    <button class="submit-button" @tap="submitReport">
       提交上报
     </button>
   </view>
@@ -325,6 +460,14 @@ function toggleAnonymous() {
   color: #727986;
 }
 
+.plain-input {
+  flex: 1;
+  min-width: 0;
+  height: 64rpx;
+  font-size: 23rpx;
+  color: #111318;
+}
+
 .row-arrow {
   width: 30rpx;
   height: 30rpx;
@@ -411,9 +554,9 @@ function toggleAnonymous() {
 }
 
 .report-tag--red {
-  color: #f32626;
-  background: #fff0f0;
-  border: 1rpx solid #ffcaca;
+  color: #4e5561;
+  background: #eef0f3;
+  border: 1rpx solid #e2e5ea;
 }
 
 .report-tag--gray {
@@ -447,6 +590,20 @@ function toggleAnonymous() {
   color: #8b929e;
   background: #f6f7f9;
   border-radius: 14rpx;
+}
+
+.desc-input {
+  width: 100%;
+  min-height: 76rpx;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  color: #111318;
+}
+
+.report-tag--active {
+  color: #fff;
+  background: #f32626;
+  border-color: #f32626;
 }
 
 .count {

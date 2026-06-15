@@ -10,6 +10,8 @@ interface NavigateToOptions {
        "/pages/my/my" |
        "/pages/report/report" |
        "/pages-sub/demo/index" |
+       "/pages-sub/recordlist/recordlist" |
+       "/pages-sub/redmerchant/redmerchant" |
        "/pages-sub/update/update";
 }
 interface RedirectToOptions extends NavigateToOptions {}
