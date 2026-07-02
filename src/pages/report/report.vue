@@ -33,7 +33,19 @@ const selectedMerchant = ref<MerchantCardVo>()
 const selectedCategoryId = ref<number>()
 const orderDate = ref(formatDateInput(new Date()))
 const description = ref('')
-const uploads = Array.from({ length: 6 }, (_, index) => index + 1)
+
+interface UploadImageItem {
+  id: number
+  localPath: string
+  url: string
+  uploading: boolean
+}
+
+const MAX_UPLOAD_COUNT = 6
+let uploadImageId = 0
+const uploadImages = ref<UploadImageItem[]>([])
+const uploadSlots = computed(() => Array.from({ length: Math.max(MAX_UPLOAD_COUNT - uploadImages.value.length, 0) }, (_, index) => index + 1))
+const isUploadingImage = computed(() => uploadImages.value.some(item => item.uploading))
 
 // 单用户模式：暂时不走登录态，后续恢复登录时可切回 userStore.userInfo.id。
 // const currentUserId = computed(() => Number(userStore.userInfo?.id || DEFAULT_USER_ID))
@@ -123,8 +135,64 @@ async function chooseMerchant() {
   })
 }
 
-function noopUpload() {
-  uni.showToast({ title: '后端暂未提供图片上传接口', icon: 'none' })
+async function chooseReportImages() {
+  const remainingCount = MAX_UPLOAD_COUNT - uploadImages.value.length
+  if (remainingCount <= 0) {
+    uni.showToast({ title: '最多上传6张图片', icon: 'none' })
+    return
+  }
+
+  try {
+    const filePaths = await chooseImages(remainingCount)
+    filePaths.forEach((filePath) => {
+      const imageId = ++uploadImageId
+      uploadImages.value.push({
+        id: imageId,
+        localPath: filePath,
+        url: '',
+        uploading: true,
+      })
+      uploadReportImage(imageId, filePath)
+    })
+  }
+  catch (error: any) {
+    if (!String(error?.errMsg || error?.message || '').includes('cancel'))
+      uni.showToast({ title: '选择图片失败', icon: 'none' })
+  }
+}
+
+function chooseImages(count: number) {
+  return new Promise<string[]>((resolve, reject) => {
+    uni.chooseImage({
+      count,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFilePaths = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths].filter(Boolean)
+        resolve(tempFilePaths as string[])
+      },
+      fail: err => reject(err),
+    })
+  })
+}
+
+async function uploadReportImage(imageId: number, filePath: string) {
+  try {
+    const url = await API.redList.report.uploadImage(filePath)
+    const image = uploadImages.value.find(item => item.id === imageId)
+    if (image) {
+      image.url = url
+      image.uploading = false
+    }
+  }
+  catch (error: any) {
+    uploadImages.value = uploadImages.value.filter(item => item.id !== imageId)
+    uni.showToast({ title: error?.message || '图片上传失败', icon: 'none' })
+  }
+}
+
+function removeUploadImage(index: number) {
+  uploadImages.value.splice(index, 1)
 }
 
 function validateForm() {
@@ -148,6 +216,11 @@ async function submitReport() {
     return
   }
 
+  if (isUploadingImage.value) {
+    uni.showToast({ title: '图片还在上传中，请稍后提交', icon: 'none' })
+    return
+  }
+
   const now = new Date()
   const time = `${`${now.getHours()}`.padStart(2, '0')}:${`${now.getMinutes()}`.padStart(2, '0')}:${`${now.getSeconds()}`.padStart(2, '0')}`
   const payload: ReportSubmitReq = {
@@ -162,7 +235,7 @@ async function submitReport() {
     rating: rating.value,
     tagIds: selectedTagIds.value,
     description: description.value.trim(),
-    photoUrls: [],
+    photoUrls: uploadImages.value.map(item => item.url).filter(Boolean),
     isAnonymous: anonymous.value ? 1 : 0,
   }
 
@@ -173,9 +246,10 @@ async function submitReport() {
     description.value = ''
     selectedTagIds.value = []
     rating.value = 0
+    uploadImages.value = []
   }
   else {
-    uni.showToast({ title: res.message || res.msg || '提交失败', icon: 'none' })
+    uni.showToast({ title: (res as any).message || res.msg || '提交失败', icon: 'none' })
   }
 }
 
@@ -221,7 +295,7 @@ onLoad(async () => {
           商家名称 <text>*</text>
         </view>
         <view class="input-pill">
-          <view class="i-carbon-search input-icon" />
+          <view class="input-icon i-carbon-search" />
           <input v-model="merchantKeyword" class="plain-input" placeholder="搜索或输入商家名称" confirm-type="search" @confirm="chooseMerchant">
         </view>
         <view class="i-carbon-chevron-right row-arrow" @tap="chooseMerchant" />
@@ -291,7 +365,7 @@ onLoad(async () => {
               >
                 {{ tag.name }}
               </text>
-              <view class="i-carbon-add add-tag" />
+              <view class="add-tag i-carbon-add" />
             </view>
           </view>
         </view>
@@ -315,7 +389,14 @@ onLoad(async () => {
           <text>请上传与体验相关的照片，最多6张</text>
         </view>
         <view class="upload-grid">
-          <view v-for="item in uploads" :key="item" class="upload-cell" @tap="noopUpload">
+          <view v-for="(image, index) in uploadImages" :key="image.id" class="upload-cell upload-cell--image">
+            <image class="upload-preview" :src="image.localPath || image.url" mode="aspectFill" />
+            <view v-if="image.uploading" class="upload-mask">
+              上传中
+            </view>
+            <view class="upload-remove i-carbon-close" @tap.stop="removeUploadImage(index)" />
+          </view>
+          <view v-for="item in uploadSlots" :key="`upload-${item}`" class="upload-cell" @tap="chooseReportImages">
             <view class="i-carbon-add upload-plus" />
             <text>上传照片</text>
           </view>
@@ -339,7 +420,7 @@ onLoad(async () => {
     </view>
 
     <view class="report-tip">
-      <view class="i-carbon-warning-alt-filled tip-icon" />
+      <view class="tip-icon i-carbon-warning-alt-filled" />
       <text>温馨提示：请如实填写，恶意上报将影响您的信用记录</text>
     </view>
 
@@ -639,6 +720,7 @@ onLoad(async () => {
 }
 
 .upload-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -648,6 +730,12 @@ onLoad(async () => {
   color: #7a828d;
   border: 1rpx dashed #d6dae1;
   border-radius: 10rpx;
+  overflow: hidden;
+  background: #fff;
+}
+
+.upload-cell--image {
+  border-style: solid;
 }
 
 .upload-plus {
@@ -655,6 +743,35 @@ onLoad(async () => {
   height: 30rpx;
   margin-bottom: 10rpx;
   color: #5f6672;
+}
+
+.upload-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(17, 19, 24, 0.48);
+}
+
+.upload-remove {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 30rpx;
+  height: 30rpx;
+  padding: 4rpx;
+  color: #fff;
+  background: rgba(17, 19, 24, 0.55);
+  border-radius: 50%;
 }
 
 .anonymous-row {

@@ -47,6 +47,8 @@ export interface ReportRecordVo {
   rating?: number
   description?: string
   tags?: string[]
+  photoUrls?: string[]
+  isAnonymous?: number
   createdAt?: string
 }
 

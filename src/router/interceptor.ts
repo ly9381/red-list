@@ -25,6 +25,7 @@ const whitePageList = [
   '/pages-sub/Help/Help',
   '/pages-sub/recordlist/recordlist',
   '/pages-sub/redmerchant/redmerchant',
+  '/pages-sub/merchant_detail/detail',
   '/pages-sub/managerRegister/managerRegister',
 ]
 

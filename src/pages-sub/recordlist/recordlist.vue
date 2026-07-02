@@ -24,17 +24,8 @@ interface RecordItem {
   score: string
   date: string
   reason: string
-  logo: string
   type: 'red' | 'black'
 }
-
-const DEFAULT_LOGOS = [
-  '/static/list/logo-huangmen.png',
-  '/static/list/logo-light-food.png',
-  '/static/list/logo-chuanxiang.png',
-  '/static/list/logo-xiaowei.png',
-  '/static/list/logo-maixiang.png',
-]
 
 const systemInfo = uni.getWindowInfo()
 const safeAreaTop = systemInfo.safeArea?.top || 0
@@ -57,12 +48,6 @@ function formatDate(value?: string) {
   return `${month}-${day}`
 }
 
-function safeLogo(url: string | undefined, index: number) {
-  if (!url || url.includes('example.com'))
-    return DEFAULT_LOGOS[index % DEFAULT_LOGOS.length]
-  return url
-}
-
 function toRecord(item: ReportRecordVo, index: number): RecordItem {
   const type = item.reportType === 'black' ? 'black' : 'red'
   return {
@@ -72,7 +57,6 @@ function toRecord(item: ReportRecordVo, index: number): RecordItem {
     score: formatScore(item.rating || item.avgScore),
     date: formatDate(item.createdAt),
     reason: item.description || item.tags?.join('，') || '',
-    logo: safeLogo(item.logoUrl, index),
     type,
   }
 }
@@ -93,6 +77,17 @@ async function loadRecords() {
 async function refreshRecords() {
   await loadRecords()
   recordPageLoaded = true
+}
+
+function goToDetail(record: RecordItem) {
+  console.log('跳转详情页, reportId:', record.id)
+  uni.navigateTo({
+    url: `/pages-sub/merchant_detail/detail?reportId=${record.id}`,
+    fail: (err) => {
+      console.error('跳转失败:', err)
+      uni.showToast({ title: `跳转失败: ${JSON.stringify(err)}`, icon: 'none' })
+    },
+  })
 }
 
 function confirmDeleteRecord(record: RecordItem) {
@@ -143,9 +138,13 @@ onUnload(() => {
     </view>
 
     <view class="record-list">
-      <view v-for="record in records" :key="record.id" class="record-card">
-        <image class="record-logo" :src="record.logo" mode="aspectFill" />
-
+      <view
+        v-for="record in records"
+        :key="record.id"
+        class="record-card"
+        :class="record.type === 'red' ? 'record-card--red' : 'record-card--black'"
+        @tap="goToDetail(record)"
+      >
         <view class="record-main">
           <view class="title-row">
             <text class="record-title">
@@ -164,7 +163,7 @@ onUnload(() => {
               {{ record.category }}
             </text>
             <view class="score" :class="{ 'score--black': record.type === 'black' }">
-              <view class="score-icon i-carbon-star-filled" />
+              <view class="i-carbon-star-filled score-icon" />
               <text>{{ record.score }}</text>
             </view>
             <view class="i-carbon-chevron-right row-arrow" />
@@ -230,25 +229,42 @@ onUnload(() => {
 }
 
 .record-card {
-  display: grid;
-  grid-template-columns: 148rpx minmax(0, 1fr);
-  column-gap: 26rpx;
+  position: relative;
   min-height: 178rpx;
   box-sizing: border-box;
-  padding: 30rpx 22rpx 28rpx 28rpx;
+  padding: 30rpx 26rpx 26rpx 32rpx;
   margin-bottom: 22rpx;
+  overflow: hidden;
   background: #fff;
   border: 1rpx solid #edf0f3;
   border-radius: 14rpx;
   box-shadow: 0 6rpx 18rpx rgba(24, 30, 42, 0.02);
+
+  &::before {
+    position: absolute;
+    top: 30rpx;
+    bottom: 30rpx;
+    left: 0;
+    width: 6rpx;
+    content: '';
+    border-radius: 0 6rpx 6rpx 0;
+  }
 }
 
-.record-logo {
-  align-self: center;
-  width: 112rpx;
-  height: 112rpx;
-  overflow: hidden;
-  border-radius: 50%;
+.record-card--red {
+  border-color: #ffe0e0;
+
+  &::before {
+    background: #f32626;
+  }
+}
+
+.record-card--black {
+  border-color: #e4e7ec;
+
+  &::before {
+    background: #252a34;
+  }
 }
 
 .record-main {
@@ -359,26 +375,5 @@ onUnload(() => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20rpx;
-}
-
-.delete-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 42rpx;
-  padding: 0 16rpx;
-  font-size: 22rpx;
-  font-weight: 700;
-  line-height: 1;
-  color: #f32626;
-  background: #fff4f4;
-  border: 1rpx solid #ffd2d2;
-  border-radius: 22rpx;
-}
-
-.delete-icon {
-  width: 24rpx;
-  height: 24rpx;
-  margin-right: 7rpx;
 }
 </style>

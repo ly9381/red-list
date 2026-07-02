@@ -124,7 +124,7 @@ onUnload(() => {
         <view class="profile-info">
           <view class="name-row">
             <text class="nickname">
-              {{ profile.nickname || '干饭小能手' }}
+              {{ profile.nickname || '服务器已歇逼' }}
             </text>
             <text class="level-tag">
               {{ profile.userLevel || '活跃贡献者' }}
@@ -206,7 +206,7 @@ onUnload(() => {
       </view>
       <view class="report-button" @tap="goReport">
         <text>去上报</text>
-        <view class="report-plus i-carbon-add" />
+        <view class="i-carbon-add report-plus" />
       </view>
     </view>
   </view>

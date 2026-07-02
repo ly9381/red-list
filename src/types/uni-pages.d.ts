@@ -10,6 +10,7 @@ interface NavigateToOptions {
        "/pages/my/my" |
        "/pages/report/report" |
        "/pages-sub/demo/index" |
+       "/pages-sub/merchant_detail/detail" |
        "/pages-sub/recordlist/recordlist" |
        "/pages-sub/redmerchant/redmerchant" |
        "/pages-sub/update/update";

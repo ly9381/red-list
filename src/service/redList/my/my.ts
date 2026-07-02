@@ -33,6 +33,10 @@ export function deleteReport(userId: number, reportId: number) {
   return http.delete<void>(`/app/my/reports/${reportId}`, { userId })
 }
 
+export function getReportDetail(userId: number, reportId: number) {
+  return http.get<ReportRecordVo>(`/app/my/reports/${reportId}`, { userId })
+}
+
 export function favorites(userId: number) {
   return http.get<MerchantCardVo[]>('/app/my/favorites', { userId })
 }
