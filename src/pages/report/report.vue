@@ -24,9 +24,6 @@ const activeType = ref<RankType>('red')
 const rating = ref(0)
 const anonymous = ref(false)
 const categories = ref<OptionVo[]>([])
-const goodTags = ref<OptionVo[]>([])
-const badTags = ref<OptionVo[]>([])
-const selectedTagIds = ref<number[]>([])
 const merchantKeyword = ref('')
 const merchantResults = ref<MerchantCardVo[]>([])
 const selectedMerchant = ref<MerchantCardVo>()
@@ -52,7 +49,6 @@ const isUploadingImage = computed(() => uploadImages.value.some(item => item.upl
 const currentUserId = DEFAULT_USER_ID
 const selectedCategoryName = computed(() => categories.value.find(item => item.id === selectedCategoryId.value)?.name || '')
 const selectedMerchantName = computed(() => selectedMerchant.value?.fullName || selectedMerchant.value?.name || merchantKeyword.value)
-const activeTags = computed(() => activeType.value === 'red' ? goodTags.value : badTags.value)
 
 const reportTabs = [
   {
@@ -77,7 +73,6 @@ function formatDateInput(date: Date) {
 
 function chooseType(type: RankType) {
   activeType.value = type
-  selectedTagIds.value = []
 }
 
 function chooseRating(value: number) {
@@ -95,14 +90,6 @@ function chooseCategory(event: any) {
 
 function chooseOrderDate(event: any) {
   orderDate.value = event.detail.value
-}
-
-function toggleTag(tagId: number) {
-  if (selectedTagIds.value.includes(tagId)) {
-    selectedTagIds.value = selectedTagIds.value.filter(id => id !== tagId)
-    return
-  }
-  selectedTagIds.value = [...selectedTagIds.value, tagId]
 }
 
 async function searchReportMerchants() {
@@ -163,6 +150,22 @@ async function chooseReportImages() {
 
 function chooseImages(count: number) {
   return new Promise<string[]>((resolve, reject) => {
+    // #ifdef MP-WEIXIN
+    uni.chooseMedia({
+      count,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res: any) => {
+        const tempFilePaths = (res.tempFiles || [])
+          .map((item: any) => item.tempFilePath)
+          .filter(Boolean)
+        resolve(tempFilePaths)
+      },
+      fail: err => reject(err),
+    })
+    // #endif
+
+    // #ifndef MP-WEIXIN
     uni.chooseImage({
       count,
       sizeType: ['compressed'],
@@ -173,6 +176,7 @@ function chooseImages(count: number) {
       },
       fail: err => reject(err),
     })
+    // #endif
   })
 }
 
@@ -202,8 +206,6 @@ function validateForm() {
     return '请选择商家分类'
   if (!rating.value)
     return '请点击评分'
-  if (!selectedTagIds.value.length)
-    return '请至少选择一个标签'
   if (description.value.trim().length < 1)
     return '详细说明至少 1 个字'
   return ''
@@ -220,6 +222,10 @@ async function submitReport() {
     uni.showToast({ title: '图片还在上传中，请稍后提交', icon: 'none' })
     return
   }
+  if (uploadImages.value.some(item => !item.url)) {
+    uni.showToast({ title: '有图片上传失败，请重新选择', icon: 'none' })
+    return
+  }
 
   const now = new Date()
   const time = `${`${now.getHours()}`.padStart(2, '0')}:${`${now.getMinutes()}`.padStart(2, '0')}:${`${now.getSeconds()}`.padStart(2, '0')}`
@@ -233,7 +239,7 @@ async function submitReport() {
     reportType: activeType.value,
     orderTime: `${orderDate.value} ${time}`,
     rating: rating.value,
-    tagIds: selectedTagIds.value,
+    tagIds: [],
     description: description.value.trim(),
     photoUrls: uploadImages.value.map(item => item.url).filter(Boolean),
     isAnonymous: anonymous.value ? 1 : 0,
@@ -244,7 +250,6 @@ async function submitReport() {
     uni.showToast({ title: '提交成功', icon: 'success' })
     uni.$emit(RED_LIST_REFRESH_EVENT)
     description.value = ''
-    selectedTagIds.value = []
     rating.value = 0
     uploadImages.value = []
   }
@@ -254,14 +259,8 @@ async function submitReport() {
 }
 
 onLoad(async () => {
-  const [categoryRes, goodTagRes, badTagRes] = await Promise.all([
-    API.redList.report.categories(),
-    API.redList.report.goodTags(),
-    API.redList.report.badTags(),
-  ])
+  const categoryRes = await API.redList.report.categories()
   categories.value = categoryRes.data || []
-  goodTags.value = goodTagRes.data || []
-  badTags.value = badTagRes.data || []
 })
 </script>
 
@@ -295,7 +294,7 @@ onLoad(async () => {
           商家名称 <text>*</text>
         </view>
         <view class="input-pill">
-          <view class="input-icon i-carbon-search" />
+          <view class="i-carbon-search input-icon" />
           <input v-model="merchantKeyword" class="plain-input" placeholder="搜索或输入商家名称" confirm-type="search" @confirm="chooseMerchant">
         </view>
         <view class="i-carbon-chevron-right row-arrow" @tap="chooseMerchant" />
@@ -337,37 +336,6 @@ onLoad(async () => {
         </view>
         <view class="score-tip">
           点击评分
-        </view>
-      </view>
-
-      <view class="tag-block">
-        <view class="tag-head">
-          <view class="form-label">
-            标签 <text>*</text>
-          </view>
-          <view class="tag-tip">
-            可多选
-          </view>
-        </view>
-
-        <view class="tag-panel">
-          <view class="tag-group">
-            <view class="tag-title">
-              {{ activeType === 'red' ? '优点标签' : '问题标签' }} <text>{{ activeType === 'red' ? '（红榜必填）' : '（黑榜必填）' }}</text>
-            </view>
-            <view class="tag-list">
-              <text
-                v-for="tag in activeTags"
-                :key="tag.id"
-                class="report-tag"
-                :class="[activeType === 'red' ? 'report-tag--red' : 'report-tag--gray', { 'report-tag--active': selectedTagIds.includes(tag.id) }]"
-                @tap="toggleTag(tag.id)"
-              >
-                {{ tag.name }}
-              </text>
-              <view class="add-tag i-carbon-add" />
-            </view>
-          </view>
         </view>
       </view>
 

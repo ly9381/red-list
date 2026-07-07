@@ -2,6 +2,9 @@ import type { MerchantCardVo, MerchantSearchQuery, OptionVo, ReportSubmitReq, Re
 import { redListHttp as http } from '../client'
 
 interface UploadResponseData {
+  code?: number
+  message?: string
+  msg?: string
   url?: string
   fileUrl?: string
   imageUrl?: string
@@ -52,7 +55,13 @@ export function uploadImage(filePath: string) {
           return
         }
 
-        const imageUrl = parseUploadUrl(res.data)
+        const response = parseUploadData(res.data)
+        if (response.code && response.code !== 200) {
+          reject(new Error(response.message || response.msg || '图片上传失败'))
+          return
+        }
+
+        const imageUrl = parseUploadUrl(response)
         if (!imageUrl) {
           reject(new Error('上传成功，但没有获取到图片地址'))
           return
@@ -72,7 +81,7 @@ function parseUploadUrl(rawData: string | UploadResponseData) {
     ? data
     : data?.url || data?.fileUrl || data?.imageUrl || data?.path || data?.src || data?.fullUrl
 
-  return normalizeUploadUrl(uploadUrl || response?.url || response?.fileUrl || response?.imageUrl || response?.path || response?.src || response?.fullUrl || '')
+  return uploadUrl || response?.url || response?.fileUrl || response?.imageUrl || response?.path || response?.src || response?.fullUrl || ''
 }
 
 function parseUploadData(rawData: string | UploadResponseData): UploadResponseData {
@@ -85,15 +94,4 @@ function parseUploadData(rawData: string | UploadResponseData): UploadResponseDa
   catch {
     return { url: rawData }
   }
-}
-
-function normalizeUploadUrl(url: string) {
-  if (!url || /^(?:https?:)?\/\//i.test(url) || url.startsWith('data:') || url.startsWith('blob:'))
-    return url
-
-  const baseUrl = import.meta.env.VITE_SERVER_BASEURL || ''
-  if (!baseUrl)
-    return url
-
-  return `${baseUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`
 }

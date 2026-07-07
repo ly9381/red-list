@@ -98,6 +98,12 @@ function goRecordList() {
   uni.navigateTo({ url: '/pages-sub/recordlist/recordlist' as any })
 }
 
+function goRecordDetail(reportId: number) {
+  if (!reportId)
+    return
+  uni.navigateTo({ url: `/pages-sub/merchant_detail/detail?reportId=${reportId}` as any })
+}
+
 onLoad(() => {
   uni.$on(RED_LIST_REFRESH_EVENT, refreshMyPage)
   refreshMyPage()
@@ -150,7 +156,7 @@ onUnload(() => {
       </view>
 
       <view class="record-list">
-        <view v-for="record in records" :key="record.id" class="record-row">
+        <view v-for="record in records" :key="record.id" class="record-row" @tap="goRecordDetail(record.id)">
           <view class="record-type" :class="record.type === 'red' ? 'record-type--red' : 'record-type--black'">
             {{ record.type === 'red' ? '红' : '黑' }}
           </view>
@@ -206,7 +212,7 @@ onUnload(() => {
       </view>
       <view class="report-button" @tap="goReport">
         <text>去上报</text>
-        <view class="i-carbon-add report-plus" />
+        <view class="report-plus i-carbon-add" />
       </view>
     </view>
   </view>

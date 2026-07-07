@@ -474,4 +474,33 @@ onLoad((query: any) => {
 
 .bottom-actions {
   display: grid;
-  grid-temp
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 78rpx;
+  font-size: 27rpx;
+  font-weight: 700;
+  border-radius: 40rpx;
+
+  &::after {
+    border: 0;
+  }
+}
+
+.action-btn--delete {
+  color: #f32626;
+  background: #fff;
+  border: 1rpx solid #ffd1d1;
+}
+
+.action-btn--edit {
+  color: #fff;
+  background: #f32626;
+}
+</style>

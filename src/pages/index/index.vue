@@ -135,6 +135,12 @@ function goRecordList() {
   uni.navigateTo({ url: '/pages-sub/recordlist/recordlist' as any })
 }
 
+function goRecordDetail(reportId: number) {
+  if (!reportId)
+    return
+  uni.navigateTo({ url: `/pages-sub/merchant_detail/detail?reportId=${reportId}` as any })
+}
+
 onLoad(() => {
   uni.$on(RED_LIST_REFRESH_EVENT, refreshHomeData)
   refreshHomeData()
@@ -193,7 +199,7 @@ onUnload(() => {
           <view class="merchant-meta">
             <text>{{ luckyMerchant.category }}</text>
             <view class="score">
-              <view class="score-icon i-carbon-star-filled" />
+              <view class="i-carbon-star-filled score-icon" />
               <text>{{ luckyMerchant.score }}</text>
             </view>
           </view>
@@ -221,7 +227,7 @@ onUnload(() => {
         </view>
         <view class="section-more" @tap="goRedMerchants">
           <text>更多</text>
-          <view class="i-carbon-chevron-right more-icon" />
+          <view class="more-icon i-carbon-chevron-right" />
         </view>
       </view>
 
@@ -258,7 +264,7 @@ onUnload(() => {
       </view>
 
       <view class="record-list">
-        <view v-for="record in records" :key="record.id" class="record-row">
+        <view v-for="record in records" :key="record.id" class="record-row" @tap="goRecordDetail(record.id)">
           <text class="record-name">
             {{ record.name }}
           </text>
