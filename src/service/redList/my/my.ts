@@ -5,6 +5,7 @@ import type {
   NotificationVo,
   RankType,
   ReportRecordVo,
+  ReportSubmitReq,
   UserProfileVo,
 } from '../types'
 import { redListHttp as http } from '../client'
@@ -35,6 +36,10 @@ export function deleteReport(userId: number, reportId: number) {
 
 export function getReportDetail(userId: number, reportId: number) {
   return http.get<ReportRecordVo>(`/app/my/reports/${reportId}`, { userId })
+}
+
+export function updateReport(userId: number, reportId: number, data: ReportSubmitReq) {
+  return http.put<ReportRecordVo>(`/app/my/reports/${reportId}`, data, { userId })
 }
 
 export function favorites(userId: number) {

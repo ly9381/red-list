@@ -2,6 +2,7 @@
 {
   "layout": "tabbar",
   "style": {
+    "navigationStyle": "custom",
     "navigationBarTitleText": "我的"
   }
 }
@@ -37,6 +38,11 @@ interface MenuItem {
 // const userStore = useUserStore()
 // 单用户模式：暂时不走登录态，后续恢复登录时可切回 userStore.userInfo.id。
 // const currentUserId = computed(() => Number(userStore.userInfo?.id || DEFAULT_USER_ID))
+const systemInfo = uni.getWindowInfo()
+const safeAreaInsets = systemInfo.safeArea
+const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.()
+const customBarTop = menuButtonInfo?.top || safeAreaInsets?.top || 0
+const customBarHeight = menuButtonInfo?.height || systemInfo.statusBarHeight || 0
 const currentUserId = DEFAULT_USER_ID
 const profile = ref<UserProfileVo>({ userId: currentUserId })
 const records = ref<RecordItem[]>([])
@@ -120,12 +126,15 @@ onUnload(() => {
 </script>
 
 <template>
-  <view class="my-page">
+  <view class="my-page" :style="{ paddingTop: `${customBarTop}px` }">
+    <view class="custom-bar" :style="{ height: `${customBarHeight}px` }">
+      <text>我的</text>
+    </view>
+
     <view class="profile-card">
       <view class="profile-main">
         <view class="avatar">
-          <image v-if="profile.avatarUrl" class="avatar-image" :src="profile.avatarUrl" mode="aspectFill" />
-          <view v-else class="avatar-icon i-carbon-user-avatar" />
+          <image class="avatar-image" src="./avatar.png" mode="aspectFill" />
         </view>
         <view class="profile-info">
           <view class="name-row">
@@ -212,7 +221,7 @@ onUnload(() => {
       </view>
       <view class="report-button" @tap="goReport">
         <text>去上报</text>
-        <view class="report-plus i-carbon-add" />
+        <view class="i-carbon-add report-plus" />
       </view>
     </view>
   </view>
@@ -226,6 +235,17 @@ onUnload(() => {
   color: #111318;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
   background: #fff;
+}
+
+.custom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f1115;
 }
 
 .profile-card,

@@ -66,6 +66,7 @@
       "type": "page",
       "layout": "tabbar",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "榜单",
         "enablePullDownRefresh": false
       }
@@ -84,6 +85,7 @@
       "type": "page",
       "layout": "tabbar",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "我的"
       }
     },
@@ -92,6 +94,7 @@
       "type": "page",
       "layout": "tabbar",
       "style": {
+        "navigationStyle": "custom",
         "navigationBarTitleText": "上报"
       }
     }
@@ -137,7 +140,12 @@
         },
         {
           "path": "update/update",
-          "type": "page"
+          "type": "page",
+          "layout": "default",
+          "style": {
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "编辑上报记录"
+          }
         }
       ]
     }

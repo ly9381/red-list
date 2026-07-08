@@ -37,6 +37,7 @@ const detail = ref<ReportRecordVo>({
 })
 
 const loading = ref(true)
+const currentReportId = ref(0)
 
 function formatDateTime(value?: string | number | Date) {
   if (!value)
@@ -138,7 +139,13 @@ function handleDelete() {
 }
 
 function handleEdit() {
-  uni.showToast({ title: '编辑功能开发中', icon: 'none' })
+  if (!detail.value.reportId) {
+    uni.showToast({ title: '缺少记录ID', icon: 'none' })
+    return
+  }
+  uni.navigateTo({
+    url: `/pages-sub/update/update?reportId=${detail.value.reportId}`,
+  })
 }
 
 function previewImage(index: number) {
@@ -153,12 +160,23 @@ onLoad((query: any) => {
   const reportId = Number(query?.reportId || 0)
   console.log('[detail] 解析后的 reportId:', reportId)
   if (reportId) {
+    currentReportId.value = reportId
+    uni.$on(RED_LIST_REFRESH_EVENT, refreshCurrentDetail)
     loadDetail(reportId)
   }
   else {
     console.error('[detail] reportId 无效，无法加载')
     uni.showToast({ title: '缺少记录ID', icon: 'none' })
   }
+})
+
+function refreshCurrentDetail() {
+  if (currentReportId.value)
+    loadDetail(currentReportId.value)
+}
+
+onUnload(() => {
+  uni.$off(RED_LIST_REFRESH_EVENT, refreshCurrentDetail)
 })
 </script>
 
@@ -196,7 +214,7 @@ onLoad((query: any) => {
             {{ formatScore(detail.rating) }}分
           </text>
           <view class="rating-stars">
-            <view v-for="n in fullStars" :key="`f-${n}`" class="star-icon star--active i-carbon-star-filled" />
+            <view v-for="n in fullStars" :key="`f-${n}`" class="star-icon i-carbon-star-filled star--active" />
             <view v-if="hasHalfStar" class="star-icon star--active i-carbon-star-half" />
             <view v-for="n in emptyStars" :key="`e-${n}`" class="star-icon i-carbon-star-filled star--empty" />
           </view>

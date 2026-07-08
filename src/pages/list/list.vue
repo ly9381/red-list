@@ -2,6 +2,7 @@
 {
   "layout": "tabbar",
   "style": {
+    "navigationStyle": "custom",
     "navigationBarTitleText": "榜单",
     "enablePullDownRefresh": false
   }
@@ -43,6 +44,11 @@ interface BlackMerchant {
 }
 
 const MOCK_CAMPUS_ID = 1
+const systemInfo = uni.getWindowInfo()
+const safeAreaInsets = systemInfo.safeArea
+const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.()
+const customBarTop = menuButtonInfo?.top || safeAreaInsets?.top || 0
+const customBarHeight = menuButtonInfo?.height || systemInfo.statusBarHeight || 0
 
 const activeRank = ref<RankType>('red')
 const categoryLabel = ref('全部分类')
@@ -197,7 +203,11 @@ onUnload(() => {
 </script>
 
 <template>
-  <view class="list-page">
+  <view class="list-page" :style="{ paddingTop: `${customBarTop}px` }">
+    <view class="custom-bar" :style="{ height: `${customBarHeight}px` }">
+      <text>榜单</text>
+    </view>
+
     <view class="rank-switch">
       <view
         v-for="item in rankTabs"
@@ -277,7 +287,7 @@ onUnload(() => {
 
         <view v-if="merchant.showAction" class="rank-card__action" @tap="goAllMerchants(activeRank)">
           <text>{{ activeRank === 'red' ? '查看全部红榜商家' : '查看全部黑榜商家' }}</text>
-          <view class="i-carbon-chevron-right action-icon" />
+          <view class="action-icon i-carbon-chevron-right" />
         </view>
       </view>
     </view>
@@ -327,12 +337,33 @@ onUnload(() => {
 
 <style scoped lang="scss">
 .list-page {
-  min-height: 100%;
+  min-height: 100vh;
   padding: 24rpx 0 32rpx;
   overflow-x: hidden;
   color: #111318;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
-  background: #fff;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 249, 244, 0.98) 0%,
+      rgba(255, 247, 250, 0.94) 28%,
+      rgba(246, 251, 255, 0.98) 56%,
+      #edf7fc 100%
+    ),
+    linear-gradient(112deg, rgba(255, 244, 220, 0.72) 0%, rgba(255, 247, 235, 0.24) 34%, rgba(255, 247, 235, 0) 58%),
+    linear-gradient(252deg, rgba(255, 229, 238, 0.8) 0%, rgba(255, 242, 247, 0.35) 38%, rgba(255, 242, 247, 0) 64%),
+    #edf7fc;
+}
+
+.custom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 28rpx 24rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f1115;
 }
 
 .rank-switch {

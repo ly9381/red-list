@@ -8,6 +8,7 @@ type Header = Record<string, any>
 interface RedListHttp {
   get: <T>(url: string, query?: Query, header?: Header, options?: Partial<CustomRequestOptions>) => Promise<ApiResult<T>>
   post: <T>(url: string, data?: any, query?: Query, header?: Header, options?: Partial<CustomRequestOptions>) => Promise<ApiResult<T>>
+  put: <T>(url: string, data?: any, query?: Query, header?: Header, options?: Partial<CustomRequestOptions>) => Promise<ApiResult<T>>
   delete: <T>(url: string, query?: Query, header?: Header, options?: Partial<CustomRequestOptions>) => Promise<ApiResult<T>>
 }
 

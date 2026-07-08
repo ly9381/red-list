@@ -2,6 +2,7 @@
 {
   "layout": "tabbar",
   "style": {
+    "navigationStyle": "custom",
     "navigationBarTitleText": "上报"
   }
 }
@@ -18,6 +19,11 @@ defineOptions({
 })
 
 const MOCK_CAMPUS_ID = 1
+const systemInfo = uni.getWindowInfo()
+const safeAreaInsets = systemInfo.safeArea
+const menuButtonInfo = uni.getMenuButtonBoundingClientRect?.()
+const customBarTop = menuButtonInfo?.top || safeAreaInsets?.top || 0
+const customBarHeight = menuButtonInfo?.height || systemInfo.statusBarHeight || 0
 // const userStore = useUserStore()
 
 const activeType = ref<RankType>('red')
@@ -265,7 +271,11 @@ onLoad(async () => {
 </script>
 
 <template>
-  <view class="report-page">
+  <view class="report-page" :style="{ paddingTop: `${customBarTop}px` }">
+    <view class="custom-bar" :style="{ height: `${customBarHeight}px` }">
+      <text>上报</text>
+    </view>
+
     <view class="report-tabs">
       <view
         v-for="tab in reportTabs"
@@ -406,6 +416,17 @@ onLoad(async () => {
   color: #111318;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
   background: #fff;
+}
+
+.custom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  font-size: 34rpx;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f1115;
 }
 
 .report-tabs {

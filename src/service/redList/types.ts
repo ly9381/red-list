@@ -35,6 +35,7 @@ export interface MerchantCardVo {
 export interface ReportRecordVo {
   reportId: number
   merchantId?: number
+  categoryId?: number
   merchantName?: string
   branchName?: string
   fullName?: string
@@ -50,6 +51,7 @@ export interface ReportRecordVo {
   photoUrls?: string[]
   isAnonymous?: number
   createdAt?: string
+  orderTime?: string
 }
 
 export interface RankMerchantVo {
